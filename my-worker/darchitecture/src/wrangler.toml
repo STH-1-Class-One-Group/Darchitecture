@@ -1,3 +1,0 @@
-name = "my-worker"          # Worker 이름 (Cloudflare 대시보드에 표시됨)
-main = "index.js"           # 진입점 파일
-compatibility_date = "2024-01-01"  # Cloudflare 런타임 버전 고정
