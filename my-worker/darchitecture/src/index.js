@@ -9,7 +9,11 @@
  */
 
 export default {
-	async fetch(request, env, ctx) {
-		return new Response('Hello abcd!');
-	},
-};
+  async fetch(request) {
+    return new Response("Hello, abcd!", {
+      headers: {
+        "Access-Control-Allow-Origin": "*"
+      }
+    })
+  }
+}
