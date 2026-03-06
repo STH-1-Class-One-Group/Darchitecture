@@ -1,13 +1,22 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello Worldx.x</title>
+  <meta charset="UTF-8">
+  <title>My App</title>
 </head>
 <body>
-    <h1>
-        이게 차이다
-    </h1>
+  <h1>이게 차이다</h1>
+  <button id="btn">Worker 호출</button>
+  <p id="result"></p>
+
+  <script>
+    const WORKER_URL = "https://darchitecture.trleresoo.workers.dev/"
+
+    document.getElementById("btn").addEventListener("click", async () => {
+      const res = await fetch(WORKER_URL)
+      const text = await res.text()
+      document.getElementById("result").innerText = text
+    })
+  </script>
 </body>
 </html>
