@@ -1,0 +1,29 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>App Server</title>
+</head>
+<body>
+    <h1>hello world!!</h1>
+    <button id="btn">Worker 호출</button>
+    <p id="result"></p>
+
+    <script>
+        // 이제 내 서버의 /api 경로가 곧 앱 서버(FastAPI)입니다.
+        const WORKER_URL = "/api"; 
+
+        document.getElementById("btn").addEventListener("click", async () => {
+        try {
+            const res = await fetch(WORKER_URL);
+            const text = await res.text();
+            document.getElementById("result").innerText = text;
+        } catch (err) {
+            console.error("서버 호출 오류:", err);
+            document.getElementById("result").innerText = "연결 실패";
+        }
+        });
+    </script>
+</body>
+</html>

@@ -1,2 +1,3 @@
-flask
-Redis
+fastapi
+uvicorn
+requests  # 나중에 공공 API 호출할 때 필요해요!
