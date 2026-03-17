@@ -1,3 +1,4 @@
+
 # DB 구조 명세 (Firebase Firestore)
 
 > 이 문서는 Firebase Firestore의 컬렉션 구조와 각 필드의 역할을 정의합니다.
@@ -29,7 +30,7 @@
 | `userId` | string | 이용 사용자 ID | `users/{userId}` 참조 |
 | `startTime` | timestamp | 이용 시작 시각 | |
 | `endTime` | timestamp | 이용 종료 시각 | |
-| `coordinates` | array<map> | GPS 경로 좌표 배열 | MapScreen에서 실시간 수집 |
+| `coordinates` | array\<map\> | GPS 경로 좌표 배열. 각 요소는 `{ lat, lng }` | MapScreen에서 실시간 수집 |
 | `distanceKm` | number | 이동 거리 (km) | `coordinates` 기반 계산 |
 | `carbonReductionKg` | number | 탄소 절감량 (kg) | `carbonModule.js` 로직 적용 결과 |
 
