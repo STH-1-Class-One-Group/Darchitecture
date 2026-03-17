@@ -1,4 +1,3 @@
-
 # package.json 역할 명세
 
 > 이 문서는 `server/package.json`의 역할과 책임을 정의합니다.
@@ -33,6 +32,8 @@
 | `dotenv` | `.env` 환경변수 로드 |
 | `cors` | CORS 설정 |
 | `axios` | 외부 API 요청 (공공데이터포털 등) |
+| `bcrypt` | 회원가입 시 비밀번호 해싱 암호화 (`routes/auth.js`에서 사용) |
+| `jsonwebtoken` | 로그인 후 JWT 토큰 발급 및 검증 — 이후 요청에서 사용자 식별에 사용 (`routes/auth.js`에서 사용) |
 
 ### devDependencies
 개발 환경에서만 사용하는 패키지 목록입니다.
