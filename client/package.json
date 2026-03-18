@@ -4,9 +4,12 @@
   "main": "node_modules/expo/AppEntry.js",
   "private": true,
   "scripts": {
-    "start": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --lan\"",
-    "android": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --android --lan\"",
-    "ios": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --ios --lan\"",
+    "start": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --tunnel\"",
+    "start:lan": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --lan\"",
+    "android": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --android --tunnel\"",
+    "android:lan": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --android --lan\"",
+    "ios": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --ios --tunnel\"",
+    "ios:lan": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --ios --lan\"",
     "web": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --web\""
   },
   "dependencies": {
