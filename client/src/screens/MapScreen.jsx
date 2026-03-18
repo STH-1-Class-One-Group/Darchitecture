@@ -1,77 +1,119 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Button from '../components/Button';
-import Card from '../components/Card';
-import MapMarker from '../components/MapMarker';
-import RoutePolyline from '../components/RoutePolyline';
+﻿import React, { useEffect, useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
+import MapView from "react-native-maps";
+import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Button from "../components/Button";
+import MapMarker from "../components/MapMarker";
+import RoutePolyline from "../components/RoutePolyline";
+import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
+import { calculateCarbonReductionKg, calculateDistanceKm } from "../modules/carbonModule";
+import { calculatePoints } from "../modules/pointModule";
+import { endRideSession, startRideSession, getCurrentSession } from "../modules/rideModule";
+import { logUsage } from "../modules/usageModule";
 
-const STATIONS = [
-  { id: 'tashu-01', name: '대전역 1번 출구', docks: 18 },
-  { id: 'tashu-02', name: '유성 온천역', docks: 22 },
-  { id: 'tashu-03', name: '정부청사 앞', docks: 16 },
-];
+const DEFAULT_REGION = {
+  latitude: 36.3504,
+  longitude: 127.3845,
+  latitudeDelta: 0.05,
+  longitudeDelta: 0.05
+};
 
-export default function MapScreen({ user, region, currentRide, onStartRide, onEndRide }) {
-  const [coordinates, setCoordinates] = useState([]);
+export default function MapScreen({ navigation }) {
+  const [stations, setStations] = useState([]);
+  const [loadingStations, setLoadingStations] = useState(true);
+  const [riding, setRiding] = useState(false);
+  const [session, setSession] = useState(null);
+
+  const coordinates = useMemo(() => session?.coordinates ?? [], [session]);
 
   useEffect(() => {
-    if (!currentRide) {
-      setCoordinates([]);
-      return undefined;
+    const loadStations = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.mapStations}`);
+        setStations(response.data.stations || []);
+      } catch (error) {
+        setStations([]);
+      } finally {
+        setLoadingStations(false);
+      }
+    };
+    loadStations();
+  }, []);
+
+  const startRide = async () => {
+    try {
+      await logUsage("ride_start", await AsyncStorage.getItem("user_id"));
+      const rideSession = await startRideSession();
+      setSession({ ...rideSession });
+      setRiding(true);
+    } catch (error) {
+      Alert.alert("위치 권한 필요", "이용 시작을 위해 위치 권한을 허용해주세요.");
     }
+  };
 
+  const endRide = async () => {
+    const finished = await endRideSession();
+    if (!finished) return;
+
+    const distanceKm = calculateDistanceKm(finished.coordinates);
+    const carbonReductionKg = calculateCarbonReductionKg(distanceKm);
+    const pointsEarned = calculatePoints(distanceKm, carbonReductionKg);
+
+    const report = {
+      id: `local-${Date.now()}`,
+      distanceKm,
+      carbonReductionKg,
+      pointsEarned,
+      durationMin: Math.max(1, Math.round((finished.endTime - finished.startTime) / 60000)),
+      coordinates: finished.coordinates
+    };
+
+    const stored = await AsyncStorage.getItem("report_list");
+    const list = stored ? JSON.parse(stored) : [];
+    list.unshift(report);
+    await AsyncStorage.setItem("report_list", JSON.stringify(list));
+
+    setRiding(false);
+    setSession(null);
+    await logUsage("ride_end", await AsyncStorage.getItem("user_id"));
+    navigation.navigate("Report", { report });
+  };
+
+  useEffect(() => {
     const interval = setInterval(() => {
-      setCoordinates((prev) => {
-        const last = prev[prev.length - 1] || { lat: 36.35, lng: 127.38 };
-        const next = {
-          lat: last.lat + (Math.random() - 0.5) * 0.001,
-          lng: last.lng + (Math.random() - 0.5) * 0.001,
-        };
-        return [...prev, next];
-      });
-    }, 1500);
-
+      const current = getCurrentSession();
+      if (current) {
+        setSession({ ...current, coordinates: [...current.coordinates] });
+      }
+    }, 2000);
     return () => clearInterval(interval);
-  }, [currentRide]);
-
-  const rideStatus = currentRide ? '이용 중' : '대기 중';
-
-  const rideMeta = useMemo(
-    () => ({
-      coordinates,
-    }),
-    [coordinates]
-  );
+  }, []);
 
   return (
     <View style={styles.container}>
-      <Card style={styles.hero}>
-        <Text style={styles.title}>안녕하세요, {user?.name}님</Text>
-        <Text style={styles.meta}>현재 지역: {region?.label}</Text>
-        <Text style={styles.status}>타슈 상태: {rideStatus}</Text>
-      </Card>
-
-      <Card style={styles.mapBox}>
-        <Text style={styles.mapTitle}>실시간 지도</Text>
-        <Text style={styles.mapSubtitle}>타슈 대여소와 이동 경로를 한눈에.</Text>
-        <View style={styles.mapPlaceholder}>
-          <Text style={styles.mapPlaceholderText}>지도 영역 (프로토타입)</Text>
-        </View>
-        <RoutePolyline points={coordinates.length} />
-      </Card>
-
-      <View style={styles.buttonRow}>
-        {!currentRide ? (
-          <Button label="이용 시작" onPress={onStartRide} />
-        ) : (
-          <Button label="이용 종료" onPress={() => onEndRide(rideMeta)} />
-        )}
+      <View style={styles.header}>
+        <Text style={styles.title}>타슈 이용 지도</Text>
+        <Text style={styles.subtitle}>{riding ? "이용 중" : "대기 중"}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>가까운 타슈 대여소</Text>
-      {STATIONS.map((station) => (
-        <MapMarker key={station.id} name={station.name} docks={station.docks} />
-      ))}
+      <MapView style={styles.map} initialRegion={DEFAULT_REGION}>
+        {!loadingStations && stations.map((station) => <MapMarker key={station.id} station={station} />)}
+        <RoutePolyline coordinates={coordinates} />
+      </MapView>
+
+      <View style={styles.panel}>
+        <Text style={styles.panelTitle}>이용 세션</Text>
+        <Text style={styles.panelText}>기록된 좌표: {coordinates.length}개</Text>
+        <Button label={riding ? "이용 종료" : "이용 시작"} onPress={riding ? endRide : startRide} />
+
+        <View style={styles.quickLinks}>
+          <Button label="리포트 목록" onPress={() => navigation.navigate("ReportList")} />
+          <Button label="마이페이지" onPress={() => navigation.navigate("MyPage")} />
+          <Button label="퀴즈" onPress={() => navigation.navigate("Quiz")} />
+          <Button label="권한 현황" onPress={() => navigation.navigate("Permission")} />
+        </View>
+      </View>
     </View>
   );
 }
@@ -79,54 +121,37 @@ export default function MapScreen({ user, region, currentRide, onStartRide, onEn
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F5FBF8"
   },
-  hero: {
-    marginBottom: 14,
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 10
   },
   title: {
-    fontFamily: 'serif',
-    fontSize: 16,
-    color: '#1F3A2E',
+    fontSize: 22,
+    fontWeight: "800"
   },
-  meta: {
-    marginTop: 6,
-    color: '#4A5E4F',
+  subtitle: {
+    color: "#60726B",
+    marginTop: 4
   },
-  status: {
-    marginTop: 4,
-    color: '#8B3F2D',
-    fontWeight: '600',
+  map: {
+    flex: 1
   },
-  mapBox: {
-    marginBottom: 14,
+  panel: {
+    padding: 16,
+    backgroundColor: "#FFFFFF"
   },
-  mapTitle: {
-    fontFamily: 'serif',
-    fontSize: 15,
-    color: '#1F3A2E',
+  panelTitle: {
+    fontWeight: "700",
+    marginBottom: 4
   },
-  mapSubtitle: {
-    color: '#4A5E4F',
-    marginBottom: 8,
+  panelText: {
+    color: "#60726B",
+    marginBottom: 8
   },
-  mapPlaceholder: {
-    height: 120,
-    borderRadius: 16,
-    backgroundColor: '#1F3A2E',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  mapPlaceholderText: {
-    color: '#F4F1EA',
-    fontSize: 12,
-  },
-  buttonRow: {
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontFamily: 'serif',
-    color: '#1F3A2E',
-    marginBottom: 10,
-  },
+  quickLinks: {
+    marginTop: 8
+  }
 });

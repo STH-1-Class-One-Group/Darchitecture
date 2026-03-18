@@ -1,2 +1,2 @@
-﻿export const CARBON_REDUCTION_PER_KM_KG = 0.192;
-export const DEFAULT_EMISSION_REFERENCE = '승용차 기준';
+﻿export const CO2_PER_KM_CAR_G = 192; // g/km (간단 가정값)
+export const G_TO_KG = 0.001;

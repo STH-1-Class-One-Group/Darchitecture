@@ -1,32 +1,63 @@
-﻿import React from 'react';
-import { ScrollView, Text, StyleSheet } from 'react-native';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import PointLogItem from '../components/PointLogItem';
+﻿import React, { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import Button from "../components/Button";
+import Card from "../components/Card";
+import PointLogItem from "../components/PointLogItem";
+import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
 
-export default function MyPageScreen({ user, region, pointBalance, pointLogs, onOpenQuiz }) {
+export default function MyPageScreen({ navigation }) {
+  const [profile, setProfile] = useState({ email: "", region: "" });
+  const [balance, setBalance] = useState(0);
+  const [logs, setLogs] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const userId = await AsyncStorage.getItem("user_id");
+      const region = await AsyncStorage.getItem("user_region");
+      setProfile({ email: userId || "demo-user", region: region || "미설정" });
+
+      try {
+        const [balanceRes, logRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}${API_ENDPOINTS.pointBalance}`, { params: { userId } }),
+          axios.get(`${API_BASE_URL}${API_ENDPOINTS.pointLog}`, { params: { userId } })
+        ]);
+        setBalance(balanceRes.data.balance || 0);
+        setLogs(logRes.data.logs || []);
+      } catch (error) {
+        setBalance(0);
+        setLogs([]);
+      }
+    };
+    load();
+  }, []);
+
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <Card style={styles.card}>
-        <Text style={styles.title}>{user?.name}님의 탄소중립 기록</Text>
-        <Text style={styles.meta}>이메일: {user?.email}</Text>
-        <Text style={styles.meta}>지역: {region?.label}</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>마이페이지</Text>
+      <Card>
+        <Text style={styles.label}>사용자</Text>
+        <Text style={styles.value}>{profile.email}</Text>
+        <Text style={styles.label}>지역</Text>
+        <Text style={styles.value}>{profile.region}</Text>
       </Card>
 
-      <Card style={styles.card}>
-        <Text style={styles.title}>녹색포인트 잔액</Text>
-        <Text style={styles.balance}>{pointBalance} P</Text>
+      <Card>
+        <Text style={styles.label}>포인트 잔액</Text>
+        <Text style={styles.balance}>{balance} P</Text>
       </Card>
 
-      <Card style={styles.card}>
-        <Text style={styles.title}>적립 로그</Text>
-        {pointLogs.length === 0 && <Text style={styles.meta}>아직 적립 내역이 없습니다.</Text>}
-        {pointLogs.map((log) => (
-          <PointLogItem key={log.id} amount={log.amount} earnedAt={log.earnedAt} />
-        ))}
+      <Card>
+        <Text style={styles.label}>포인트 적립 로그</Text>
+        {logs.length === 0 ? (
+          <Text style={styles.empty}>아직 적립 내역이 없습니다.</Text>
+        ) : (
+          logs.map((item) => <PointLogItem key={item.id} item={item} />)
+        )}
       </Card>
 
-      <Button label="탄소 지식 퀴즈 풀기" onPress={onOpenQuiz} />
+      <Button label="지도 화면으로" onPress={() => navigation.navigate("Map")} />
     </ScrollView>
   );
 }
@@ -34,23 +65,31 @@ export default function MyPageScreen({ user, region, pointBalance, pointLogs, on
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F5FBF8"
   },
-  card: {
-    marginBottom: 14,
+  content: {
+    padding: 24
   },
   title: {
-    fontFamily: 'serif',
-    fontSize: 16,
-    color: '#1F3A2E',
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 12
   },
-  meta: {
-    marginTop: 6,
-    color: '#4A5E4F',
+  label: {
+    color: "#60726B",
+    marginBottom: 4
+  },
+  value: {
+    fontWeight: "600",
+    marginBottom: 10
   },
   balance: {
-    marginTop: 10,
-    fontSize: 22,
-    fontFamily: 'Georgia',
-    color: '#1F3A2E',
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0D6E4F"
   },
+  empty: {
+    color: "#60726B",
+    marginTop: 8
+  }
 });

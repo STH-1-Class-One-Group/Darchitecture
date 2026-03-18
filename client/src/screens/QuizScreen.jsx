@@ -1,69 +1,57 @@
-﻿import React, { useMemo, useState } from 'react';
-import { ScrollView, Text, StyleSheet } from 'react-native';
-import Button from '../components/Button';
-import Card from '../components/Card';
-import QuizItem from '../components/QuizItem';
+﻿import React, { useEffect, useState } from "react";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import Button from "../components/Button";
+import QuizItem from "../components/QuizItem";
+import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
 
-const QUESTIONS = [
-  {
-    id: 'q1',
-    question: '대전시의 공용자전거 이름은?',
-    options: ['타슈', '따릉이', '누비자'],
-    answer: '타슈',
-  },
-  {
-    id: 'q2',
-    question: '자전거 이용이 줄여주는 것은?',
-    options: ['탄소 배출', '미세먼지', '전기 사용'],
-    answer: '탄소 배출',
-  },
-  {
-    id: 'q3',
-    question: '탄소중립을 위해 가장 먼저 할 수 있는 일은?',
-    options: ['이동 수단 바꾸기', '플라스틱 늘리기', '전력 소비 증가'],
-    answer: '이동 수단 바꾸기',
-  },
-];
-
-export default function QuizScreen({ onDone }) {
+export default function QuizScreen({ navigation }) {
+  const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
-  const [submitted, setSubmitted] = useState(false);
 
-  const score = useMemo(() => {
-    return QUESTIONS.reduce((acc, item) => {
-      if (answers[item.id] === item.answer) return acc + 1;
-      return acc;
-    }, 0);
-  }, [answers]);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.quizQuestions}`);
+        setQuestions(res.data.questions || []);
+      } catch (error) {
+        setQuestions([]);
+      }
+    };
+    load();
+  }, []);
 
-  const handleSubmit = () => {
-    setSubmitted(true);
+  const submit = async () => {
+    const userId = await AsyncStorage.getItem("user_id");
+    try {
+      const res = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.quizSubmit}`, {
+        userId,
+        answers
+      });
+      Alert.alert("퀴즈 제출", `점수: ${res.data.score}점`);
+      navigation.navigate("Map");
+    } catch (error) {
+      Alert.alert("제출 실패", "서버 연결을 확인해주세요.");
+    }
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <Card style={styles.card}>
-        <Text style={styles.title}>탄소중립 지식 퀴즈</Text>
-        <Text style={styles.meta}>점수는 추후 KPI 측정에 사용됩니다.</Text>
-      </Card>
-
-      {QUESTIONS.map((item) => (
-        <QuizItem
-          key={item.id}
-          item={item}
-          selected={answers[item.id]}
-          onSelect={(choice) => setAnswers((prev) => ({ ...prev, [item.id]: choice }))}
-        />
-      ))}
-
-      {!submitted ? (
-        <Button label="제출하기" onPress={handleSubmit} />
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>탄소중립 퀴즈</Text>
+      {questions.length === 0 ? (
+        <Text style={styles.empty}>퀴즈를 불러오는 중입니다.</Text>
       ) : (
-        <Card style={styles.card}>
-          <Text style={styles.result}>현재 점수: {score} / {QUESTIONS.length}</Text>
-          <Button label="마이페이지로 돌아가기" onPress={onDone} variant="ghost" />
-        </Card>
+        questions.map((q) => (
+          <QuizItem
+            key={q.id}
+            item={q}
+            selected={answers[q.id]}
+            onSelect={(choice) => setAnswers((prev) => ({ ...prev, [q.id]: choice }))}
+          />
+        ))
       )}
+      <Button label="제출하기" onPress={submit} />
     </ScrollView>
   );
 }
@@ -71,23 +59,17 @@ export default function QuizScreen({ onDone }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F5FBF8"
   },
-  card: {
-    marginBottom: 16,
+  content: {
+    padding: 24
   },
   title: {
-    fontFamily: 'serif',
-    fontSize: 16,
-    color: '#1F3A2E',
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 12
   },
-  meta: {
-    marginTop: 6,
-    color: '#4A5E4F',
-  },
-  result: {
-    fontFamily: 'serif',
-    fontSize: 16,
-    color: '#1F3A2E',
-    marginBottom: 12,
-  },
+  empty: {
+    color: "#60726B"
+  }
 });

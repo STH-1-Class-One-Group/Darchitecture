@@ -1,16 +1,17 @@
-﻿const { db, generateId } = require('../db/firebase');
+﻿const { db, uid } = require("../db/firebase");
 
 function logUsage({ userId, action }) {
+  const logId = uid("usage");
   const log = {
-    id: generateId('usage'),
+    id: logId,
     userId,
     action,
-    loggedAt: new Date().toISOString(),
+    loggedAt: Date.now()
   };
-  db.usageLogs.push(log);
+  db.usageLogs.set(logId, log);
   return log;
 }
 
 module.exports = {
-  logUsage,
+  logUsage
 };

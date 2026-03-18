@@ -1,9 +1,7 @@
-﻿const safeDomains = ['tashu.or.kr', 'tashu.go.kr', 'daejeon.go.kr'];
-
-export function isSafeQrUrl(rawUrl) {
+﻿export function isSafeQrDomain(url) {
   try {
-    const url = new URL(rawUrl);
-    return safeDomains.some((domain) => url.hostname.includes(domain));
+    const parsed = new URL(url);
+    return ["tashu.kr", "daejeon.go.kr"].includes(parsed.hostname);
   } catch (error) {
     return false;
   }

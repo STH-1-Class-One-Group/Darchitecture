@@ -1,39 +1,38 @@
-﻿const { db, generateId } = require('../db/firebase');
-const pointCore = require('./point');
+﻿const { db, uid } = require("../db/firebase");
+const { calculatePoints } = require("./utils");
+const { addPointLog } = require("./point");
 
 function createReportFromRide(ride) {
-  const id = generateId('report');
+  const reportId = uid("report");
+  const durationMin = Math.max(1, Math.round((ride.endTime - ride.startTime) / 60000));
+  const pointsEarned = calculatePoints(ride.distanceKm, ride.carbonReductionKg);
+
   const report = {
-    id,
+    id: reportId,
     rideId: ride.id,
+    userId: ride.userId,
     distanceKm: ride.distanceKm,
-    durationMin: ride.durationMin,
-    carbonReductionKg: pointCore.calculateCarbonReduction(ride.distanceKm),
-    pointsEarned: 0,
-    createdAt: new Date().toISOString(),
+    durationMin,
+    carbonReductionKg: ride.carbonReductionKg,
+    pointsEarned
   };
 
-  report.pointsEarned = pointCore.addPoints(ride.userId, report.carbonReductionKg);
-  db.reports.set(id, report);
+  db.reports.set(reportId, report);
+  addPointLog({ userId: ride.userId, amount: pointsEarned });
+
   return report;
 }
 
 function listReports(userId) {
-  return Array.from(db.reports.values())
-    .filter((report) => {
-      if (!userId) return true;
-      const ride = db.rides.get(report.rideId);
-      return ride && ride.userId === userId;
-    })
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  return Array.from(db.reports.values()).filter((r) => r.userId === userId);
 }
 
 function getReport(reportId) {
-  return db.reports.get(reportId);
+  return db.reports.get(reportId) || null;
 }
 
 module.exports = {
   createReportFromRide,
   listReports,
-  getReport,
+  getReport
 };

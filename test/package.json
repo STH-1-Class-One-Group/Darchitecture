@@ -1,7 +1,5 @@
 ﻿{
   "name": "ta-cu-test",
-  "version": "0.1.0",
-  "scripts": {
-    "test": "node prototype_test_v1.test.js"
-  }
+  "version": "0.0.1",
+  "private": true
 }

@@ -1,23 +1,29 @@
-﻿const express = require('express');
-const { db, generateId, getOrCreateUser } = require('../db/firebase');
+﻿const express = require("express");
+const { db } = require("../db/firebase");
 
 const router = express.Router();
 
-router.post('/register', (req, res) => {
-  const { name, email, region } = req.body || {};
-  const id = generateId('user');
-  const user = getOrCreateUser(id, { name, email, region });
-  db.users.set(id, user);
-  res.json({ user });
+router.post("/register", (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+  const userId = `user_${Date.now()}`;
+  db.users.set(userId, { id: userId, email, pointBalance: 0 });
+  return res.json({ token: "dev-token", userId });
 });
 
-router.post('/login', (req, res) => {
-  const { email } = req.body || {};
-  const user = Array.from(db.users.values()).find((item) => item.profile.email === email);
-  if (!user) {
-    return res.status(404).json({ error: 'user_not_found' });
+router.post("/login", (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: "missing_email" });
   }
-  return res.json({ user });
+  const existing = Array.from(db.users.values()).find((u) => u.email === email);
+  const userId = existing ? existing.id : `user_${Date.now()}`;
+  if (!existing) {
+    db.users.set(userId, { id: userId, email, pointBalance: 0 });
+  }
+  return res.json({ token: "dev-token", userId });
 });
 
 module.exports = router;

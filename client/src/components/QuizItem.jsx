@@ -1,17 +1,19 @@
-﻿import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+﻿import React from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export default function QuizItem({ item, selected, onSelect }) {
   return (
-    <View style={styles.container}>
+    <View style={styles.item}>
       <Text style={styles.question}>{item.question}</Text>
-      {item.options.map((option) => (
+      {item.choices.map((choice) => (
         <Pressable
-          key={option}
-          onPress={() => onSelect(option)}
-          style={[styles.option, selected === option && styles.optionSelected]}
+          key={choice}
+          onPress={() => onSelect(choice)}
+          style={[styles.choice, selected === choice && styles.choiceSelected]}
         >
-          <Text style={styles.optionText}>{option}</Text>
+          <Text style={[styles.choiceText, selected === choice && styles.choiceTextSelected]}>
+            {choice}
+          </Text>
         </Pressable>
       ))}
     </View>
@@ -19,27 +21,30 @@ export default function QuizItem({ item, selected, onSelect }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 18,
+  item: {
+    marginBottom: 16
   },
   question: {
-    fontFamily: 'serif',
     fontSize: 15,
-    marginBottom: 10,
-    color: '#1F3A2E',
+    fontWeight: "600",
+    marginBottom: 8
   },
-  option: {
-    padding: 10,
-    borderRadius: 12,
+  choice: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#C6D2C4',
-    marginBottom: 8,
+    borderColor: "#D9E4DF",
+    marginBottom: 6
   },
-  optionSelected: {
-    backgroundColor: '#EFD6A6',
-    borderColor: '#1F3A2E',
+  choiceSelected: {
+    borderColor: "#0D6E4F",
+    backgroundColor: "#E9F4EF"
   },
-  optionText: {
-    color: '#1F3A2E',
+  choiceText: {
+    color: "#1D2B27"
   },
+  choiceTextSelected: {
+    fontWeight: "600"
+  }
 });

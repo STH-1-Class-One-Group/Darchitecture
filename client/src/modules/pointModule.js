@@ -1,6 +1,6 @@
-﻿import { POINTS_PER_KG, POINTS_MINIMUM } from '../constants/pointConstants';
+﻿import { POINTS_PER_KM, POINTS_PER_KG_CO2 } from "../constants/pointConstants";
 
-export function calculatePoints(carbonReductionKg) {
-  const rawPoints = Math.round(carbonReductionKg * POINTS_PER_KG);
-  return Math.max(rawPoints, POINTS_MINIMUM);
+export function calculatePoints(distanceKm, carbonReductionKg) {
+  const points = distanceKm * POINTS_PER_KM + carbonReductionKg * POINTS_PER_KG_CO2;
+  return Math.max(0, Math.round(points));
 }

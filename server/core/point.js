@@ -1,45 +1,40 @@
-﻿const { db, getOrCreateUser } = require('../db/firebase');
+﻿const { db, uid } = require("../db/firebase");
 
-const CARBON_REDUCTION_PER_KM_KG = 0.192;
-const POINTS_PER_KG = 12;
-const POINTS_MINIMUM = 5;
-
-function calculateCarbonReduction(distanceKm) {
-  const reduction = distanceKm * CARBON_REDUCTION_PER_KM_KG;
-  return Math.round(reduction * 100) / 100;
+function ensureUser(userId) {
+  if (!db.users.has(userId)) {
+    db.users.set(userId, { id: userId, pointBalance: 0 });
+  }
 }
 
-function calculatePoints(carbonReductionKg) {
-  const points = Math.round(carbonReductionKg * POINTS_PER_KG);
-  return Math.max(points, POINTS_MINIMUM);
-}
-
-function addPoints(userId, carbonReductionKg) {
-  const user = getOrCreateUser(userId);
-  const earned = calculatePoints(carbonReductionKg);
-  user.pointBalance += earned;
-  db.pointLogs.unshift({
-    id: `point_${Date.now()}`,
+function addPointLog({ userId, amount }) {
+  ensureUser(userId);
+  const logId = uid("point");
+  const log = {
+    id: logId,
     userId,
-    amount: earned,
-    earnedAt: new Date().toISOString(),
-  });
-  return earned;
+    amount,
+    earnedAt: Date.now()
+  };
+  db.pointLogs.set(logId, log);
+
+  const user = db.users.get(userId);
+  user.pointBalance += amount;
+  db.users.set(userId, user);
+
+  return log;
 }
 
 function getBalance(userId) {
-  const user = db.users.get(userId);
-  return user ? user.pointBalance : 0;
+  ensureUser(userId);
+  return db.users.get(userId).pointBalance;
 }
 
 function getLogs(userId) {
-  return db.pointLogs.filter((log) => log.userId === userId);
+  return Array.from(db.pointLogs.values()).filter((log) => log.userId === userId);
 }
 
 module.exports = {
-  calculateCarbonReduction,
-  calculatePoints,
-  addPoints,
+  addPointLog,
   getBalance,
-  getLogs,
+  getLogs
 };

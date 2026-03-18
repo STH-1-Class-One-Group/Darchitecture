@@ -1,29 +1,26 @@
-﻿import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+﻿import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
-export default function PointLogItem({ amount, earnedAt }) {
+export default function PointLogItem({ item }) {
   return (
     <View style={styles.row}>
-      <Text style={styles.amount}>+{amount}p</Text>
-      <Text style={styles.date}>{new Date(earnedAt).toLocaleString()}</Text>
+      <Text style={styles.amount}>+{item.amount} P</Text>
+      <Text style={styles.date}>{new Date(item.earnedAt).toLocaleString()}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3DED3',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 8
   },
   amount: {
-    fontFamily: 'serif',
-    color: '#1F3A2E',
+    fontWeight: "600",
+    color: "#0D6E4F"
   },
   date: {
-    fontSize: 12,
-    color: '#4A5E4F',
-  },
+    color: "#60726B"
+  }
 });

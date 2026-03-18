@@ -1,53 +1,47 @@
-﻿const ACTIVE_SESSIONS = new Map();
+﻿import * as Location from "expo-location";
 
-function calculateDistanceKm(coords) {
-  if (!coords || coords.length < 2) return 0;
-  let distance = 0;
-  for (let i = 1; i < coords.length; i += 1) {
-    const prev = coords[i - 1];
-    const current = coords[i];
-    const dx = current.lat - prev.lat;
-    const dy = current.lng - prev.lng;
-    distance += Math.sqrt(dx * dx + dy * dy) * 111;
+let rideSession = null;
+
+export async function startRideSession() {
+  const permission = await Location.requestForegroundPermissionsAsync();
+  if (permission.status !== "granted") {
+    throw new Error("location_permission_denied");
   }
-  return Math.round(distance * 100) / 100;
-}
 
-export function createRideSession(userId) {
-  const id = `ride_${Date.now()}`;
-  const ride = {
-    id,
-    userId,
-    startTime: new Date().toISOString(),
+  rideSession = {
+    startTime: Date.now(),
     coordinates: [],
-  };
-  ACTIVE_SESSIONS.set(id, ride);
-  return ride;
-}
-
-export function updateRideSession(rideId, coordinate) {
-  const ride = ACTIVE_SESSIONS.get(rideId);
-  if (!ride) return null;
-  ride.coordinates.push(coordinate);
-  return ride;
-}
-
-export function endRideSession(ride, rideMeta = {}) {
-  const coords = rideMeta.coordinates && rideMeta.coordinates.length
-    ? rideMeta.coordinates
-    : ride.coordinates;
-  const distanceKm = calculateDistanceKm(coords);
-  const endTime = new Date().toISOString();
-  const durationMin = Math.max(1, Math.round((Date.parse(endTime) - Date.parse(ride.startTime)) / 60000));
-
-  const completedRide = {
-    ...ride,
-    endTime,
-    coordinates: coords,
-    distanceKm,
-    durationMin,
+    watcher: null
   };
 
-  ACTIVE_SESSIONS.delete(ride.id);
-  return completedRide;
+  rideSession.watcher = await Location.watchPositionAsync(
+    {
+      accuracy: Location.Accuracy.Balanced,
+      timeInterval: 2000,
+      distanceInterval: 5
+    },
+    (loc) => {
+      rideSession.coordinates.push({
+        lat: loc.coords.latitude,
+        lng: loc.coords.longitude,
+        timestamp: loc.timestamp
+      });
+    }
+  );
+
+  return rideSession;
+}
+
+export async function endRideSession() {
+  if (!rideSession) return null;
+  if (rideSession.watcher) {
+    rideSession.watcher.remove();
+  }
+  const finished = { ...rideSession, endTime: Date.now() };
+  rideSession = null;
+  return finished;
+}
+
+export function getCurrentSession() {
+  return rideSession;
 }

@@ -1,15 +1,10 @@
-﻿const usageLogStore = [];
+﻿import axios from "axios";
+import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
 
-export function logUsage(userId, action) {
-  if (!action) return;
-  usageLogStore.unshift({
-    id: `usage_${Date.now()}`,
-    userId: userId || 'guest',
-    action,
-    loggedAt: new Date().toISOString(),
-  });
-}
-
-export function getUsageLogs() {
-  return usageLogStore;
+export async function logUsage(action, userId) {
+  try {
+    await axios.post(`${API_BASE_URL}${API_ENDPOINTS.usageLog}`, { action, userId });
+  } catch (error) {
+    // 무시: 프로토타입에서는 로그 실패를 치명적으로 처리하지 않음
+  }
 }

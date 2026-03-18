@@ -1,21 +1,27 @@
-﻿import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import Card from '../components/Card';
-import PermissionRow from '../components/PermissionRow';
+﻿import React, { useEffect, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import * as Location from "expo-location";
+import Button from "../components/Button";
+import PermissionRow from "../components/PermissionRow";
 
-export default function PermissionScreen() {
+export default function PermissionScreen({ navigation }) {
+  const [locationStatus, setLocationStatus] = useState("확인 중...");
+
+  useEffect(() => {
+    const load = async () => {
+      const status = await Location.getForegroundPermissionsAsync();
+      setLocationStatus(status.status === "granted" ? "허용" : "비허용");
+    };
+    load();
+  }, []);
+
   return (
     <View style={styles.container}>
-      <Card style={styles.card}>
-        <Text style={styles.title}>권한 현황</Text>
-        <Text style={styles.meta}>필수 권한을 확인하고 언제든지 설정을 변경할 수 있어요.</Text>
-      </Card>
-
-      <Card style={styles.card}>
-        <PermissionRow label="위치" status="허용" />
-        <PermissionRow label="카메라" status="비허용" />
-        <PermissionRow label="알림" status="허용" />
-      </Card>
+      <Text style={styles.title}>권한 현황</Text>
+      <PermissionRow label="위치 권한" status={locationStatus} />
+      <PermissionRow label="알림 권한" status="미연동" />
+      <Text style={styles.caption}>알림 권한은 추후 푸시 기능과 함께 연동됩니다.</Text>
+      <Button label="지도 화면으로" onPress={() => navigation.navigate("Map")} />
     </View>
   );
 }
@@ -23,17 +29,17 @@ export default function PermissionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  card: {
-    marginBottom: 14,
+    padding: 24,
+    backgroundColor: "#F5FBF8"
   },
   title: {
-    fontFamily: 'serif',
-    fontSize: 16,
-    color: '#1F3A2E',
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 12
   },
-  meta: {
-    marginTop: 6,
-    color: '#4A5E4F',
-  },
+  caption: {
+    color: "#60726B",
+    marginTop: 12,
+    marginBottom: 16
+  }
 });

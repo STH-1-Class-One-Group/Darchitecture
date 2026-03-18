@@ -1,51 +1,37 @@
-﻿const { db, generateId, getOrCreateUser } = require('../db/firebase');
-const reportCore = require('./report');
+﻿const { db, uid } = require("../db/firebase");
+const { calculateCarbonReductionKg, calculateDistanceKm } = require("./utils");
+const { createReportFromRide } = require("./report");
 
-function calculateDistanceKm(coords) {
-  if (!coords || coords.length < 2) return 0;
-  let distance = 0;
-  for (let i = 1; i < coords.length; i += 1) {
-    const prev = coords[i - 1];
-    const current = coords[i];
-    const dx = current.lat - prev.lat;
-    const dy = current.lng - prev.lng;
-    distance += Math.sqrt(dx * dx + dy * dy) * 111;
-  }
-  return Math.round(distance * 100) / 100;
-}
-
-function startRide(userId) {
-  getOrCreateUser(userId);
-  const id = generateId('ride');
+function startRide({ userId }) {
+  const rideId = uid("ride");
   const ride = {
-    id,
+    id: rideId,
     userId,
-    startTime: new Date().toISOString(),
+    startTime: Date.now(),
+    endTime: null,
     coordinates: [],
+    distanceKm: 0,
+    carbonReductionKg: 0
   };
-  db.rides.set(id, ride);
+  db.rides.set(rideId, ride);
   return ride;
 }
 
-function endRide(rideId, coordinates = []) {
+function endRide({ rideId, coordinates }) {
   const ride = db.rides.get(rideId);
-  if (!ride) {
-    return { error: 'Ride not found' };
-  }
+  if (!ride) return null;
 
-  ride.coordinates = coordinates.length ? coordinates : ride.coordinates;
-  ride.endTime = new Date().toISOString();
+  ride.endTime = Date.now();
+  ride.coordinates = coordinates || [];
   ride.distanceKm = calculateDistanceKm(ride.coordinates);
-  ride.durationMin = Math.max(
-    1,
-    Math.round((Date.parse(ride.endTime) - Date.parse(ride.startTime)) / 60000)
-  );
+  ride.carbonReductionKg = calculateCarbonReductionKg(ride.distanceKm);
 
-  const report = reportCore.createReportFromRide(ride);
+  db.rides.set(rideId, ride);
+  const report = createReportFromRide(ride);
   return { ride, report };
 }
 
 module.exports = {
   startRide,
-  endRide,
+  endRide
 };

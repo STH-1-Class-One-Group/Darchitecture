@@ -1,50 +1,40 @@
-﻿import React from 'react';
-import { Pressable, Text, StyleSheet } from 'react-native';
+﻿import React from "react";
+import { Pressable, StyleSheet, Text } from "react-native";
 
-export default function Button({ label, onPress, disabled, variant = 'primary' }) {
+export default function Button({ label, onPress, disabled }) {
   return (
     <Pressable
+      style={({ pressed }) => [
+        styles.button,
+        disabled && styles.disabled,
+        pressed && !disabled && styles.pressed
+      ]}
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => [
-        styles.base,
-        styles[variant],
-        disabled && styles.disabled,
-        pressed && !disabled && styles.pressed,
-      ]}
     >
-      <Text style={[styles.label, variant === 'ghost' && styles.labelGhost]}>{label}</Text>
+      <Text style={styles.label}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  base: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  primary: {
-    backgroundColor: '#1F3A2E',
-  },
-  ghost: {
-    backgroundColor: '#F4F1EA',
-    borderWidth: 1,
-    borderColor: '#1F3A2E',
-  },
-  disabled: {
-    opacity: 0.5,
+  button: {
+    backgroundColor: "#0D6E4F",
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    alignItems: "center",
+    marginVertical: 6
   },
   pressed: {
-    transform: [{ scale: 0.98 }],
+    opacity: 0.85
+  },
+  disabled: {
+    backgroundColor: "#9BB8AD"
   },
   label: {
-    color: '#F9EED8',
-    fontFamily: 'serif',
-    fontSize: 14,
-  },
-  labelGhost: {
-    color: '#1F3A2E',
-  },
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600"
+  }
 });

@@ -1,2 +1,2 @@
-﻿export const POINTS_PER_KG = 12;
-export const POINTS_MINIMUM = 5;
+﻿export const POINTS_PER_KM = 10;
+export const POINTS_PER_KG_CO2 = 50;
