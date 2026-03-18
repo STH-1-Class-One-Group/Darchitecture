@@ -1,4 +1,4 @@
-﻿const { db, uid } = require("../db/firebase");
+const { db, uid } = require("../db/firebase");
 
 const QUESTIONS = [
   {
@@ -25,7 +25,7 @@ function getQuestions() {
   return QUESTIONS.map(({ answer, ...rest }) => rest);
 }
 
-function submitQuiz({ userId, answers }) {
+async function submitQuiz({ userId, answers }) {
   const score = QUESTIONS.reduce((acc, q) => {
     return acc + (answers && answers[q.id] === q.answer ? 1 : 0);
   }, 0);
@@ -38,7 +38,7 @@ function submitQuiz({ userId, answers }) {
     takenAt: Date.now(),
     type: "initial"
   };
-  db.quizResults.set(resultId, result);
+  await db.collection("quizResults").doc(resultId).set(result);
 
   return result;
 }

@@ -1,13 +1,19 @@
-﻿const { db, uid } = require("../db/firebase");
+const { db, uid, FieldValue } = require("../db/firebase");
 
-function ensureUser(userId) {
-  if (!db.users.has(userId)) {
-    db.users.set(userId, { id: userId, pointBalance: 0 });
+async function ensureUser(userId) {
+  const ref = db.collection("users").doc(userId);
+  const snap = await ref.get();
+  if (!snap.exists) {
+    await ref.set({
+      id: userId,
+      pointBalance: 0
+    });
   }
+  return ref;
 }
 
-function addPointLog({ userId, amount }) {
-  ensureUser(userId);
+async function addPointLog({ userId, amount }) {
+  await ensureUser(userId);
   const logId = uid("point");
   const log = {
     id: logId,
@@ -15,22 +21,29 @@ function addPointLog({ userId, amount }) {
     amount,
     earnedAt: Date.now()
   };
-  db.pointLogs.set(logId, log);
 
-  const user = db.users.get(userId);
-  user.pointBalance += amount;
-  db.users.set(userId, user);
+  await db.collection("pointLogs").doc(logId).set(log);
+  await db.collection("users").doc(userId).set(
+    {
+      pointBalance: FieldValue.increment(amount)
+    },
+    { merge: true }
+  );
 
   return log;
 }
 
-function getBalance(userId) {
-  ensureUser(userId);
-  return db.users.get(userId).pointBalance;
+async function getBalance(userId) {
+  await ensureUser(userId);
+  const snap = await db.collection("users").doc(userId).get();
+  const data = snap.data() || {};
+  return data.pointBalance || 0;
 }
 
-function getLogs(userId) {
-  return Array.from(db.pointLogs.values()).filter((log) => log.userId === userId);
+async function getLogs(userId) {
+  const snap = await db.collection("pointLogs").where("userId", "==", userId).get();
+  const logs = snap.docs.map((doc) => doc.data());
+  return logs.sort((a, b) => b.earnedAt - a.earnedAt);
 }
 
 module.exports = {

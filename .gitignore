@@ -1,2 +1,7 @@
 node_modules/
 .expo/
+.firebase/
+firebase-data/
+server/.env
+client/.env
+*.log

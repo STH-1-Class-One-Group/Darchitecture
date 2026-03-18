@@ -1,13 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import * as Location from "expo-location";
+import { doc, getDoc } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import PointLogItem from "../components/PointLogItem";
 import PermissionRow from "../components/PermissionRow";
 import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
+import { auth, db } from "../config/firebase";
 
 export default function MyPageScreen({ navigation }) {
   const { width } = useWindowDimensions();
@@ -16,24 +19,31 @@ export default function MyPageScreen({ navigation }) {
   const [balance, setBalance] = useState(0);
   const [logs, setLogs] = useState([]);
   const [locationStatus, setLocationStatus] = useState("확인 중...");
-  const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
     const load = async () => {
-      const userId = await AsyncStorage.getItem("user_id");
-      const region = await AsyncStorage.getItem("user_region");
-      setProfile({ email: userId || "demo-user", region: region || "미설정" });
+      const user = auth.currentUser;
+      const userId = user?.uid || (await AsyncStorage.getItem("user_id"));
 
-      try {
-        const [balanceRes, logRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.pointBalance}`, { params: { userId } }),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.pointLog}`, { params: { userId } })
-        ]);
-        setBalance(balanceRes.data.balance || 0);
-        setLogs(logRes.data.logs || []);
-      } catch (error) {
-        setBalance(0);
-        setLogs([]);
+      if (userId) {
+        const snap = await getDoc(doc(db, "users", userId));
+        const data = snap.exists() ? snap.data() : {};
+        setProfile({
+          email: data.email || user?.email || "demo-user",
+          region: data.region || "미설정"
+        });
+
+        try {
+          const [balanceRes, logRes] = await Promise.all([
+            axios.get(`${API_BASE_URL}${API_ENDPOINTS.pointBalance}`, { params: { userId } }),
+            axios.get(`${API_BASE_URL}${API_ENDPOINTS.pointLog}`, { params: { userId } })
+          ]);
+          setBalance(balanceRes.data.balance || 0);
+          setLogs(logRes.data.logs || []);
+        } catch (error) {
+          setBalance(0);
+          setLogs([]);
+        }
       }
 
       const status = await Location.getForegroundPermissionsAsync();
@@ -43,13 +53,14 @@ export default function MyPageScreen({ navigation }) {
   }, []);
 
   const logout = async () => {
-    await AsyncStorage.multiRemove(["auth_token", "user_id", "user_region"]);
+    await signOut(auth);
+    await AsyncStorage.multiRemove(["auth_token", "user_id", "user_region", "user_email"]);
     navigation.reset({ index: 0, routes: [{ name: "Auth" }] });
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}> 
+      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}>
         <Text style={styles.title}>마이페이지</Text>
 
         <Card>
@@ -78,28 +89,11 @@ export default function MyPageScreen({ navigation }) {
         </Card>
 
         <Card>
-          <Text style={styles.label}>이용 안내</Text>
-          <Text style={styles.guideText}>타슈 앱에서 대여 시작 → 본 앱에서 이용 시작</Text>
-          <Button label="안내 팝업 보기" onPress={() => setShowGuide(true)} />
-        </Card>
-
-        <Card>
           <Text style={styles.label}>권한 현황</Text>
           <PermissionRow label="위치 권한" status={locationStatus} />
           <PermissionRow label="알림 권한" status="미연동" />
         </Card>
       </ScrollView>
-
-      <Modal transparent visible={showGuide} animationType="fade">
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>이용 시작 순서 안내</Text>
-            <Text style={styles.modalText}>1. 타슈 앱에서 대여 시작</Text>
-            <Text style={styles.modalText}>2. 본 앱에서 이용 시작 버튼 클릭</Text>
-            <Button label="닫기" onPress={() => setShowGuide(false)} />
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -135,29 +129,5 @@ const styles = StyleSheet.create({
   empty: {
     color: "#60726B",
     marginTop: 8
-  },
-  guideText: {
-    color: "#60726B",
-    marginBottom: 8
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    padding: 24
-  },
-  modalCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12
-  },
-  modalText: {
-    color: "#60726B",
-    marginBottom: 6
   }
 });

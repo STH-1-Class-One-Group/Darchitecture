@@ -1,8 +1,8 @@
-﻿const { db, uid } = require("../db/firebase");
+const { db, uid } = require("../db/firebase");
 const { calculatePoints } = require("./utils");
 const { addPointLog } = require("./point");
 
-function createReportFromRide(ride) {
+async function createReportFromRide(ride) {
   const reportId = uid("report");
   const durationMin = Math.max(1, Math.round((ride.endTime - ride.startTime) / 60000));
   const pointsEarned = calculatePoints(ride.distanceKm, ride.carbonReductionKg);
@@ -17,18 +17,21 @@ function createReportFromRide(ride) {
     pointsEarned
   };
 
-  db.reports.set(reportId, report);
-  addPointLog({ userId: ride.userId, amount: pointsEarned });
+  await db.collection("reports").doc(reportId).set(report);
+  await addPointLog({ userId: ride.userId, amount: pointsEarned });
 
   return report;
 }
 
-function listReports(userId) {
-  return Array.from(db.reports.values()).filter((r) => r.userId === userId);
+async function listReports(userId) {
+  const snap = await db.collection("reports").where("userId", "==", userId).get();
+  const reports = snap.docs.map((doc) => doc.data());
+  return reports.sort((a, b) => b.durationMin - a.durationMin);
 }
 
-function getReport(reportId) {
-  return db.reports.get(reportId) || null;
+async function getReport(reportId) {
+  const snap = await db.collection("reports").doc(reportId).get();
+  return snap.exists ? snap.data() : null;
 }
 
 module.exports = {

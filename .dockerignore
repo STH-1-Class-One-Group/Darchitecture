@@ -1,0 +1,7 @@
+.git
+.expo
+client/node_modules
+server/node_modules
+test/node_modules
+firebase-data
+*.log

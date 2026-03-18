@@ -52,9 +52,11 @@ export default function MapScreen({ navigation, route }) {
 
   const startRide = async () => {
     try {
-      await logUsage("ride_start", await AsyncStorage.getItem("user_id"));
+      const userId = await AsyncStorage.getItem("user_id");
+      await logUsage("ride_start", userId);
+      const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.rideStart}`, { userId });
       const rideSession = await startRideSession();
-      setSession({ ...rideSession });
+      setSession({ ...rideSession, rideId: response.data.rideId });
       setRiding(true);
     } catch (error) {
       Alert.alert("위치 권한 필요", "이용 시작을 위해 위치 권한을 허용해주세요.");
@@ -78,10 +80,20 @@ export default function MapScreen({ navigation, route }) {
       coordinates: finished.coordinates
     };
 
-    const stored = await AsyncStorage.getItem("report_list");
-    const list = stored ? JSON.parse(stored) : [];
-    list.unshift(report);
-    await AsyncStorage.setItem("report_list", JSON.stringify(list));
+    try {
+      const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.rideEnd}`, {
+        rideId: session?.rideId,
+        coordinates: finished.coordinates
+      });
+      if (response.data?.report) {
+        Object.assign(report, response.data.report);
+      }
+    } catch (error) {
+      const stored = await AsyncStorage.getItem("report_list");
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift(report);
+      await AsyncStorage.setItem("report_list", JSON.stringify(list));
+    }
 
     setRiding(false);
     setSession(null);
@@ -111,7 +123,7 @@ export default function MapScreen({ navigation, route }) {
         <RoutePolyline coordinates={coordinates} />
       </MapView>
 
-      <View style={[styles.panel, { maxWidth: panelWidth }]}> 
+      <View style={[styles.panel, { maxWidth: panelWidth }]}>
         <Text style={styles.panelTitle}>이용 세션</Text>
         <Text style={styles.panelText}>기록된 좌표: {coordinates.length}개</Text>
         <Button label={riding ? "이용 종료" : "이용 시작"} onPress={riding ? endRide : startRide} />

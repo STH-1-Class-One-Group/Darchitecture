@@ -1,92 +1,106 @@
-import React, { useMemo, useState } from "react";
-import { Alert, SafeAreaView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, SafeAreaView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import Button from "../components/Button";
 import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
+import { auth, isFirebaseConfigured } from "../config/firebase";
 
-export default function AuthScreen({ navigation, onAuthed }) {
+WebBrowser.maybeCompleteAuthSession();
+
+const googleConfig = {
+  expoClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID || "",
+  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || "",
+  androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || "",
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || ""
+};
+
+export default function AuthScreen({ navigation }) {
   const { width } = useWindowDimensions();
   const contentWidth = useMemo(() => Math.min(width, 480), [width]);
-  const [mode, setMode] = useState("login");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("demo@tacu.app");
-  const [password, setPassword] = useState("password");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(googleConfig);
+
+  const isGoogleConfigured = Object.values(googleConfig).some(Boolean);
+
+  useEffect(() => {
+    const handleResponse = async () => {
+      if (!response || response.type !== "success") return;
+
+      const idToken = response.params?.id_token || response.authentication?.idToken;
+      if (!idToken) {
+        Alert.alert("로그인 실패", "Google 토큰을 가져오지 못했습니다.");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const credential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, credential);
+        const firebaseToken = await result.user.getIdToken();
+
+        const syncRes = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.authLogin}`, {
+          idToken: firebaseToken
+        });
+
+        await AsyncStorage.setItem("user_id", result.user.uid);
+        if (result.user.email) {
+          await AsyncStorage.setItem("user_email", result.user.email);
+        }
+
+        navigation.reset({
+          index: 0,
+          routes: [{ name: syncRes.data?.user?.region ? "Map" : "Onboarding" }]
+        });
+      } catch (error) {
+        Alert.alert("로그인 실패", "Firebase 또는 서버 연결을 확인해주세요.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    handleResponse();
+  }, [response, navigation]);
 
   const submit = async () => {
-    if (!email || !password || (mode === "register" && (!name || !passwordConfirm))) {
-      Alert.alert("입력 필요", "이메일과 비밀번호를 입력해주세요.");
+    if (!isFirebaseConfigured) {
+      Alert.alert("Firebase 설정 필요", "Firebase 환경변수를 먼저 채워주세요.");
       return;
     }
-    if (mode === "register" && password !== passwordConfirm) {
-      Alert.alert("비밀번호 확인", "비밀번호가 일치하지 않습니다.");
+    if (!isGoogleConfigured) {
+      Alert.alert("Google 로그인 설정 필요", "Google Client ID를 먼저 채워주세요.");
       return;
     }
-
-    setLoading(true);
-    try {
-      const endpoint = mode === "login" ? API_ENDPOINTS.authLogin : API_ENDPOINTS.authRegister;
-      const response = await axios.post(`${API_BASE_URL}${endpoint}`, { name, email, password });
-      const { token, userId } = response.data;
-      await AsyncStorage.setItem("auth_token", token);
-      await AsyncStorage.setItem("user_id", userId);
-      onAuthed({ token, userId, region: null });
-      navigation.replace("Onboarding");
-    } catch (error) {
-      Alert.alert("로그인 실패", "서버 연결을 확인해주세요.");
-    } finally {
-      setLoading(false);
-    }
+    await promptAsync({ useProxy: true });
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={[styles.content, { maxWidth: contentWidth }]}>
         <Text style={styles.title}>타슈 탄소중립</Text>
-        <Text style={styles.subtitle}>대전시 자전거 이용과 탄소 절감 기록</Text>
+        <Text style={styles.subtitle}>Google 로그인으로 Firebase Auth에 연결합니다.</Text>
 
-        {mode === "register" && (
-          <TextInput
-            style={styles.input}
-            placeholder="이름"
-            value={name}
-            onChangeText={setName}
-          />
-        )}
-        <TextInput
-          style={styles.input}
-          placeholder="이메일"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="비밀번호"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-        {mode === "register" && (
-          <TextInput
-            style={styles.input}
-            placeholder="비밀번호 확인"
-            secureTextEntry
-            value={passwordConfirm}
-            onChangeText={setPasswordConfirm}
-          />
-        )}
+        <View style={styles.notice}>
+          <Text style={styles.noticeText}>
+            Firebase 설정값과 Google Client ID가 들어가야 실제 로그인이 동작합니다.
+          </Text>
+        </View>
 
         <Button
-          label={loading ? "처리 중..." : mode === "login" ? "로그인" : "회원가입"}
+          label={loading ? "처리 중..." : "Google로 로그인"}
           onPress={submit}
-          disabled={loading}
+          disabled={loading || !request}
         />
-        <Text style={styles.switch} onPress={() => setMode(mode === "login" ? "register" : "login")}>
-          {mode === "login" ? "회원가입 모드로 전환" : "로그인 모드로 전환"}
-        </Text>
+
+        {!isFirebaseConfigured && (
+          <Text style={styles.helper}>Firebase env 값은 빈칸 상태입니다.</Text>
+        )}
+        {!isGoogleConfigured && (
+          <Text style={styles.helper}>Google OAuth client ID도 아직 빈칸입니다.</Text>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -113,18 +127,20 @@ const styles = StyleSheet.create({
     color: "#60726B",
     marginBottom: 24
   },
-  input: {
+  notice: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     borderWidth: 1,
     borderColor: "#DDE7E2",
     marginBottom: 12
   },
-  switch: {
-    textAlign: "center",
-    marginTop: 12,
-    color: "#0D6E4F",
-    fontWeight: "600"
+  noticeText: {
+    color: "#60726B"
+  },
+  helper: {
+    marginTop: 10,
+    color: "#60726B",
+    fontSize: 12
   }
 });

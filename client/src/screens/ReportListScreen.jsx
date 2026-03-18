@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import Button from "../components/Button";
 import ReportCard from "../components/ReportCard";
+import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
 
 export default function ReportListScreen({ navigation }) {
   const { width } = useWindowDimensions();
@@ -10,18 +12,27 @@ export default function ReportListScreen({ navigation }) {
   const [reports, setReports] = useState([]);
 
   const loadReports = async () => {
-    const stored = await AsyncStorage.getItem("report_list");
-    setReports(stored ? JSON.parse(stored) : []);
+    const userId = await AsyncStorage.getItem("user_id");
+    try {
+      const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.reportList}`, {
+        params: { userId }
+      });
+      setReports(response.data.reports || []);
+    } catch (error) {
+      const stored = await AsyncStorage.getItem("report_list");
+      setReports(stored ? JSON.parse(stored) : []);
+    }
   };
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", loadReports);
+    loadReports();
     return unsubscribe;
   }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}> 
+      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}>
         <Text style={styles.title}>누적 리포트</Text>
         {reports.length === 0 ? (
           <Text style={styles.empty}>아직 리포트가 없습니다.</Text>

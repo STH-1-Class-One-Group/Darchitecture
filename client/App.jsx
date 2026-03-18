@@ -1,8 +1,9 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 import AuthScreen from "./src/screens/AuthScreen";
 import OnboardingScreen from "./src/screens/OnboardingScreen";
@@ -12,31 +13,36 @@ import ReportListScreen from "./src/screens/ReportListScreen";
 import MyPageScreen from "./src/screens/MyPageScreen";
 import QuizScreen from "./src/screens/QuizScreen";
 import PermissionScreen from "./src/screens/PermissionScreen";
+import { auth, db } from "./src/config/firebase";
 
 const Stack = createStackNavigator();
 
 export default function App() {
   const [booting, setBooting] = useState(true);
-  const [authState, setAuthState] = useState({ token: null, userId: null, region: null });
+  const [authState, setAuthState] = useState({ user: null, region: null });
 
   useEffect(() => {
-    const boot = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setAuthState({ user: null, region: null });
+        setBooting(false);
+        return;
+      }
+
       try {
-        const [token, userId, region] = await Promise.all([
-          AsyncStorage.getItem("auth_token"),
-          AsyncStorage.getItem("user_id"),
-          AsyncStorage.getItem("user_region")
-        ]);
-        setAuthState({ token, userId, region });
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const data = snap.exists() ? snap.data() : null;
+        setAuthState({ user, region: data?.region || null });
       } finally {
         setBooting(false);
       }
-    };
-    boot();
+    });
+
+    return unsubscribe;
   }, []);
 
   const initialRoute = useMemo(() => {
-    if (!authState.token) return "Auth";
+    if (!authState.user) return "Auth";
     if (!authState.region) return "Onboarding";
     return "Map";
   }, [authState]);
@@ -46,9 +52,13 @@ export default function App() {
   return (
     <NavigationContainer>
       <StatusBar style="dark" />
-      <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        key={`${authState.user?.uid || "guest"}-${authState.region || "none"}`}
+        initialRouteName={initialRoute}
+        screenOptions={{ headerShown: false }}
+      >
         <Stack.Screen name="Auth">
-          {(props) => <AuthScreen {...props} onAuthed={setAuthState} />}
+          {(props) => <AuthScreen {...props} />}
         </Stack.Screen>
         <Stack.Screen name="Onboarding">
           {(props) => (

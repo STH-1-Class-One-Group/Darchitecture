@@ -10,8 +10,9 @@ router.get("/questions", (req, res) => {
 router.post("/submit", (req, res) => {
   const { userId, answers } = req.body;
   if (!userId) return res.status(400).json({ error: "missing_user" });
-  const result = submitQuiz({ userId, answers });
-  return res.json({ score: result.score });
+  submitQuiz({ userId, answers })
+    .then((result) => res.json({ score: result.score }))
+    .catch(() => res.status(500).json({ error: "quiz_submit_failed" }));
 });
 
 module.exports = router;

@@ -1,29 +1,77 @@
-﻿const express = require("express");
-const { db } = require("../db/firebase");
+const express = require("express");
+const { auth, db } = require("../db/firebase");
 
 const router = express.Router();
 
-router.post("/register", (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "missing_fields" });
+async function syncUserFromToken(idToken) {
+  const decoded = await auth.verifyIdToken(idToken);
+  const userId = decoded.uid;
+  const ref = db.collection("users").doc(userId);
+  const snap = await ref.get();
+  const existing = snap.exists ? snap.data() : {};
+  const profile = {
+    id: userId,
+    email: decoded.email || existing.email || "",
+    name: decoded.name || decoded.email || existing.name || "사용자",
+    photoURL: decoded.picture || existing.photoURL || "",
+    provider: decoded.firebase?.sign_in_provider || existing.provider || "google.com",
+    updatedAt: Date.now()
+  };
+
+  if (!snap.exists) {
+    profile.region = null;
+    profile.pointBalance = 0;
   }
-  const userId = `user_${Date.now()}`;
-  db.users.set(userId, { id: userId, email, pointBalance: 0 });
-  return res.json({ token: "dev-token", userId });
+
+  await ref.set(profile, { merge: true });
+  const latest = await ref.get();
+  return latest.data() || profile;
+}
+
+router.post("/login", async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) {
+    return res.status(400).json({ error: "missing_token" });
+  }
+
+  try {
+    const profile = await syncUserFromToken(idToken);
+    return res.json({ user: profile });
+  } catch (error) {
+    return res.status(401).json({ error: "invalid_token" });
+  }
 });
 
-router.post("/login", (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: "missing_email" });
+router.post("/register", async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) {
+    return res.status(400).json({ error: "missing_token" });
   }
-  const existing = Array.from(db.users.values()).find((u) => u.email === email);
-  const userId = existing ? existing.id : `user_${Date.now()}`;
-  if (!existing) {
-    db.users.set(userId, { id: userId, email, pointBalance: 0 });
+
+  try {
+    const profile = await syncUserFromToken(idToken);
+    return res.json({ user: profile });
+  } catch (error) {
+    return res.status(401).json({ error: "invalid_token" });
   }
-  return res.json({ token: "dev-token", userId });
+});
+
+router.patch("/profile", async (req, res) => {
+  const { userId, region } = req.body;
+  if (!userId || !region) {
+    return res.status(400).json({ error: "missing_fields" });
+  }
+
+  await db.collection("users").doc(userId).set(
+    {
+      region,
+      updatedAt: Date.now()
+    },
+    { merge: true }
+  );
+
+  const snap = await db.collection("users").doc(userId).get();
+  return res.json({ user: snap.data() || null });
 });
 
 module.exports = router;

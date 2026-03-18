@@ -1,6 +1,6 @@
-﻿const { db, uid } = require("../db/firebase");
+const { db, uid } = require("../db/firebase");
 
-function logUsage({ userId, action }) {
+async function logUsage({ userId, action }) {
   const logId = uid("usage");
   const log = {
     id: logId,
@@ -8,7 +8,7 @@ function logUsage({ userId, action }) {
     action,
     loggedAt: Date.now()
   };
-  db.usageLogs.set(logId, log);
+  await db.collection("usageLogs").doc(logId).set(log);
   return log;
 }
 

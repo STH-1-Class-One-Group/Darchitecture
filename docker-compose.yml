@@ -1,0 +1,51 @@
+services:
+  firebase:
+    build:
+      context: .
+      dockerfile: docker/firebase.Dockerfile
+    container_name: ta-cu-firebase
+    ports:
+      - "8080:8080"
+      - "9099:9099"
+      - "4001:4001"
+      - "4400:4400"
+      - "4500:4500"
+    environment:
+      FIREBASE_PROJECT_ID: ta-cu-local
+    volumes:
+      - firebase-data:/firebase-data
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+    container_name: ta-cu-server
+    depends_on:
+      - firebase
+    environment:
+      PORT: 4000
+      FIREBASE_PROJECT_ID: ta-cu-local
+      FIRESTORE_EMULATOR_HOST: firebase:8080
+      FIREBASE_AUTH_EMULATOR_HOST: firebase:9099
+      TASHU_API_BASE_URL: https://api.example.com
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+    container_name: ta-cu-client
+    depends_on:
+      - server
+    environment:
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: "0.0.0.0"
+    ports:
+      - "8081:8081"
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+volumes:
+  firebase-data:

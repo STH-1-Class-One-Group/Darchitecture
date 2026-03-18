@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { SafeAreaView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { doc, setDoc } from "firebase/firestore";
 import Button from "../components/Button";
 import { REGIONS } from "../constants/regionConstants";
+import { auth, db } from "../config/firebase";
 
 export default function OnboardingScreen({ navigation, onCompleted }) {
   const { width } = useWindowDimensions();
@@ -11,9 +13,23 @@ export default function OnboardingScreen({ navigation, onCompleted }) {
 
   const submit = async () => {
     if (!selected) return;
+
     await AsyncStorage.setItem("user_region", selected);
+    const user = auth.currentUser;
+    if (user) {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          id: user.uid,
+          region: selected,
+          updatedAt: Date.now()
+        },
+        { merge: true }
+      );
+    }
+
     onCompleted(selected);
-    navigation.replace("Map", { showGuide: true });
+    navigation.replace("Map");
   };
 
   return (
@@ -34,6 +50,12 @@ export default function OnboardingScreen({ navigation, onCompleted }) {
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+
+        <View style={styles.tipBox}>
+          <Text style={styles.tipTitle}>이용 시작 순서 안내</Text>
+          <Text style={styles.tipText}>1. 타슈 앱에서 대여 시작</Text>
+          <Text style={styles.tipText}>2. 본 앱에서 이용 시작 버튼 클릭</Text>
         </View>
 
         <Button label="선택 완료" onPress={submit} disabled={!selected} />
@@ -82,5 +104,18 @@ const styles = StyleSheet.create({
   itemTextSelected: {
     fontWeight: "700",
     color: "#0D6E4F"
+  },
+  tipBox: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14
+  },
+  tipTitle: {
+    fontWeight: "700",
+    marginBottom: 6
+  },
+  tipText: {
+    color: "#60726B"
   }
 });

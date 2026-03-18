@@ -1,8 +1,8 @@
-﻿const { db, uid } = require("../db/firebase");
+const { db, uid } = require("../db/firebase");
 const { calculateCarbonReductionKg, calculateDistanceKm } = require("./utils");
 const { createReportFromRide } = require("./report");
 
-function startRide({ userId }) {
+async function startRide({ userId }) {
   const rideId = uid("ride");
   const ride = {
     id: rideId,
@@ -13,21 +13,22 @@ function startRide({ userId }) {
     distanceKm: 0,
     carbonReductionKg: 0
   };
-  db.rides.set(rideId, ride);
+  await db.collection("rides").doc(rideId).set(ride);
   return ride;
 }
 
-function endRide({ rideId, coordinates }) {
-  const ride = db.rides.get(rideId);
-  if (!ride) return null;
+async function endRide({ rideId, coordinates }) {
+  const snap = await db.collection("rides").doc(rideId).get();
+  if (!snap.exists) return null;
 
+  const ride = snap.data();
   ride.endTime = Date.now();
   ride.coordinates = coordinates || [];
   ride.distanceKm = calculateDistanceKm(ride.coordinates);
   ride.carbonReductionKg = calculateCarbonReductionKg(ride.distanceKm);
 
-  db.rides.set(rideId, ride);
-  const report = createReportFromRide(ride);
+  await db.collection("rides").doc(rideId).set(ride);
+  const report = await createReportFromRide(ride);
   return { ride, report };
 }
 
