@@ -1,5 +1,5 @@
-﻿import React, { useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import Button from "../components/Button";
@@ -7,6 +7,8 @@ import QuizItem from "../components/QuizItem";
 import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
 
 export default function QuizScreen({ navigation }) {
+  const { width } = useWindowDimensions();
+  const contentWidth = useMemo(() => Math.min(width, 520), [width]);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
 
@@ -37,22 +39,24 @@ export default function QuizScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>탄소중립 퀴즈</Text>
-      {questions.length === 0 ? (
-        <Text style={styles.empty}>퀴즈를 불러오는 중입니다.</Text>
-      ) : (
-        questions.map((q) => (
-          <QuizItem
-            key={q.id}
-            item={q}
-            selected={answers[q.id]}
-            onSelect={(choice) => setAnswers((prev) => ({ ...prev, [q.id]: choice }))}
-          />
-        ))
-      )}
-      <Button label="제출하기" onPress={submit} />
-    </ScrollView>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}> 
+        <Text style={styles.title}>탄소중립 퀴즈</Text>
+        {questions.length === 0 ? (
+          <Text style={styles.empty}>퀴즈를 불러오는 중입니다.</Text>
+        ) : (
+          questions.map((q) => (
+            <QuizItem
+              key={q.id}
+              item={q}
+              selected={answers[q.id]}
+              onSelect={(choice) => setAnswers((prev) => ({ ...prev, [q.id]: choice }))}
+            />
+          ))
+        )}
+        <Button label="제출하기" onPress={submit} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -62,7 +66,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5FBF8"
   },
   content: {
-    padding: 24
+    padding: 24,
+    width: "100%",
+    alignSelf: "center"
   },
   title: {
     fontSize: 22,

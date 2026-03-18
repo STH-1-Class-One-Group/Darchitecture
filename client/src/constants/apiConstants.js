@@ -1,4 +1,4 @@
-﻿export const API_BASE_URL = "https://greensboro-northern-controlled-finite.trycloudflare.com";
+export const API_BASE_URL = "https://roland-close-warnings-abroad.trycloudflare.com";
 
 export const API_ENDPOINTS = {
   authRegister: "/auth/register",
@@ -14,4 +14,3 @@ export const API_ENDPOINTS = {
   quizSubmit: "/quiz/submit",
   usageLog: "/usage/log"
 };
-

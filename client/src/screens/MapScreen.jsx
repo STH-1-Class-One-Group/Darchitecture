@@ -1,5 +1,5 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, Modal, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import MapView from "react-native-maps";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,13 +19,22 @@ const DEFAULT_REGION = {
   longitudeDelta: 0.05
 };
 
-export default function MapScreen({ navigation }) {
+export default function MapScreen({ navigation, route }) {
+  const { width } = useWindowDimensions();
+  const panelWidth = useMemo(() => Math.min(width, 520), [width]);
   const [stations, setStations] = useState([]);
   const [loadingStations, setLoadingStations] = useState(true);
   const [riding, setRiding] = useState(false);
   const [session, setSession] = useState(null);
+  const [showGuide, setShowGuide] = useState(false);
 
   const coordinates = useMemo(() => session?.coordinates ?? [], [session]);
+
+  useEffect(() => {
+    if (route?.params?.showGuide) {
+      setShowGuide(true);
+    }
+  }, [route?.params?.showGuide]);
 
   useEffect(() => {
     const loadStations = async () => {
@@ -102,7 +111,7 @@ export default function MapScreen({ navigation }) {
         <RoutePolyline coordinates={coordinates} />
       </MapView>
 
-      <View style={styles.panel}>
+      <View style={[styles.panel, { maxWidth: panelWidth }]}> 
         <Text style={styles.panelTitle}>이용 세션</Text>
         <Text style={styles.panelText}>기록된 좌표: {coordinates.length}개</Text>
         <Button label={riding ? "이용 종료" : "이용 시작"} onPress={riding ? endRide : startRide} />
@@ -111,9 +120,19 @@ export default function MapScreen({ navigation }) {
           <Button label="리포트 목록" onPress={() => navigation.navigate("ReportList")} />
           <Button label="마이페이지" onPress={() => navigation.navigate("MyPage")} />
           <Button label="퀴즈" onPress={() => navigation.navigate("Quiz")} />
-          <Button label="권한 현황" onPress={() => navigation.navigate("Permission")} />
         </View>
       </View>
+
+      <Modal transparent visible={showGuide} animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>이용 시작 순서 안내</Text>
+            <Text style={styles.modalText}>1. 타슈 앱에서 대여 시작</Text>
+            <Text style={styles.modalText}>2. 본 앱에서 이용 시작 버튼 클릭</Text>
+            <Button label="닫기" onPress={() => setShowGuide(false)} />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -141,7 +160,9 @@ const styles = StyleSheet.create({
   },
   panel: {
     padding: 16,
-    backgroundColor: "#FFFFFF"
+    backgroundColor: "#FFFFFF",
+    alignSelf: "center",
+    width: "100%"
   },
   panelTitle: {
     fontWeight: "700",
@@ -153,5 +174,25 @@ const styles = StyleSheet.create({
   },
   quickLinks: {
     marginTop: 8
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    padding: 24
+  },
+  modalCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 12
+  },
+  modalText: {
+    color: "#60726B",
+    marginBottom: 6
   }
 });

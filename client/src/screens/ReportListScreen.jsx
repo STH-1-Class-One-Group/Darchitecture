@@ -1,10 +1,12 @@
-﻿import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Button from "../components/Button";
 import ReportCard from "../components/ReportCard";
 
 export default function ReportListScreen({ navigation }) {
+  const { width } = useWindowDimensions();
+  const contentWidth = useMemo(() => Math.min(width, 520), [width]);
   const [reports, setReports] = useState([]);
 
   const loadReports = async () => {
@@ -18,9 +20,9 @@ export default function ReportListScreen({ navigation }) {
   }, [navigation]);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>누적 리포트</Text>
-      <ScrollView>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}> 
+        <Text style={styles.title}>누적 리포트</Text>
         {reports.length === 0 ? (
           <Text style={styles.empty}>아직 리포트가 없습니다.</Text>
         ) : (
@@ -31,17 +33,21 @@ export default function ReportListScreen({ navigation }) {
             </View>
           ))
         )}
+        <Button label="지도 화면으로" onPress={() => navigation.navigate("Map")} />
       </ScrollView>
-      <Button label="지도 화면으로" onPress={() => navigation.navigate("Map")} />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
     backgroundColor: "#F5FBF8"
+  },
+  content: {
+    padding: 24,
+    width: "100%",
+    alignSelf: "center"
   },
   title: {
     fontSize: 22,
