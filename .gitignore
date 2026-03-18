@@ -1,2 +1,4 @@
 node_modules/
-.expo/
+client/.expo/
+server/.env
+client/.env
