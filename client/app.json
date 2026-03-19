@@ -4,15 +4,26 @@
     "slug": "ta-cu",
     "version": "0.0.1",
     "orientation": "portrait",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "sdkVersion": "54.0.0",
-    "updates": { "fallbackToCacheTimeout": 0 },
-    "assetBundlePatterns": ["**/*"],
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
       "package": "com.tacu.prototype"
     },
     "ios": {
       "bundleIdentifier": "com.tacu.prototype"
-    }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }
