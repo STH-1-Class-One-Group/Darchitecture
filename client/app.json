@@ -22,6 +22,7 @@
     "ios": {
       "bundleIdentifier": "com.tacu.prototype"
     },
+    "scheme": "ta-cu",
     "plugins": [
       "expo-web-browser"
     ]
