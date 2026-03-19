@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Modal, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Alert, Modal, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import MapView from "react-native-maps";
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Button from "../components/Button";
 import MapMarker from "../components/MapMarker";
 import RoutePolyline from "../components/RoutePolyline";
-import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
+import apiClient from "../modules/apiClient";
+import { API_ENDPOINTS } from "../constants/apiConstants";
 import { calculateCarbonReductionKg, calculateDistanceKm } from "../modules/carbonModule";
 import { calculatePoints } from "../modules/pointModule";
-import { endRideSession, startRideSession, getCurrentSession } from "../modules/rideModule";
+import { endRideSession, getCurrentSession, startRideSession } from "../modules/rideModule";
 import { logUsage } from "../modules/usageModule";
 
 const DEFAULT_REGION = {
@@ -39,7 +39,7 @@ export default function MapScreen({ navigation, route }) {
   useEffect(() => {
     const loadStations = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.mapStations}`);
+        const response = await apiClient.get(API_ENDPOINTS.mapStations);
         setStations(response.data.stations || []);
       } catch (error) {
         setStations([]);
@@ -57,7 +57,7 @@ export default function MapScreen({ navigation, route }) {
       setSession({ ...rideSession });
       setRiding(true);
     } catch (error) {
-      Alert.alert("위치 권한 필요", "이용 시작을 위해 위치 권한을 허용해주세요.");
+      Alert.alert("위치 권한 필요", "라이딩을 시작하려면 위치 권한을 허용해주세요.");
     }
   };
 
@@ -102,8 +102,19 @@ export default function MapScreen({ navigation, route }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>타슈 이용 지도</Text>
-        <Text style={styles.subtitle}>{riding ? "이용 중" : "대기 중"}</Text>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.title}>타슈 이용 지도</Text>
+            <Text style={styles.subtitle}>{riding ? "라이딩 중" : "대기 중"}</Text>
+          </View>
+          <TouchableOpacity
+            accessibilityLabel="메뉴 열기"
+            style={styles.menuButton}
+            onPress={() => navigation.navigate("MenuDrawer")}
+          >
+            <Text style={styles.menuIcon}>≡</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <MapView style={styles.map} initialRegion={DEFAULT_REGION}>
@@ -111,10 +122,10 @@ export default function MapScreen({ navigation, route }) {
         <RoutePolyline coordinates={coordinates} />
       </MapView>
 
-      <View style={[styles.panel, { maxWidth: panelWidth }]}> 
-        <Text style={styles.panelTitle}>이용 세션</Text>
+      <View style={[styles.panel, { maxWidth: panelWidth }]}>
+        <Text style={styles.panelTitle}>라이딩 기록</Text>
         <Text style={styles.panelText}>기록된 좌표: {coordinates.length}개</Text>
-        <Button label={riding ? "이용 종료" : "이용 시작"} onPress={riding ? endRide : startRide} />
+        <Button label={riding ? "라이딩 종료" : "라이딩 시작"} onPress={riding ? endRide : startRide} />
 
         <View style={styles.quickLinks}>
           <Button label="리포트 목록" onPress={() => navigation.navigate("ReportList")} />
@@ -126,9 +137,9 @@ export default function MapScreen({ navigation, route }) {
       <Modal transparent visible={showGuide} animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>이용 시작 순서 안내</Text>
-            <Text style={styles.modalText}>1. 타슈 앱에서 대여 시작</Text>
-            <Text style={styles.modalText}>2. 본 앱에서 이용 시작 버튼 클릭</Text>
+            <Text style={styles.modalTitle}>라이딩 시작 가이드</Text>
+            <Text style={styles.modalText}>1. 지도 화면에서 자전거를 선택하세요.</Text>
+            <Text style={styles.modalText}>2. 라이딩 시작 버튼을 눌러주세요.</Text>
             <Button label="닫기" onPress={() => setShowGuide(false)} />
           </View>
         </View>
@@ -147,6 +158,11 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 10
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
   title: {
     fontSize: 22,
     fontWeight: "800"
@@ -154,6 +170,21 @@ const styles = StyleSheet.create({
   subtitle: {
     color: "#60726B",
     marginTop: 4
+  },
+  menuButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E6EFEA"
+  },
+  menuIcon: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#2E3A34"
   },
   map: {
     flex: 1

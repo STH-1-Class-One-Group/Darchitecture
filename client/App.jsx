@@ -12,6 +12,7 @@ import ReportListScreen from "./src/screens/ReportListScreen";
 import MyPageScreen from "./src/screens/MyPageScreen";
 import QuizScreen from "./src/screens/QuizScreen";
 import PermissionScreen from "./src/screens/PermissionScreen";
+import MenuDrawerScreen from "./src/screens/MenuDrawerScreen";
 
 const Stack = createStackNavigator();
 
@@ -64,6 +65,7 @@ export default function App() {
         <Stack.Screen name="MyPage" component={MyPageScreen} />
         <Stack.Screen name="Quiz" component={QuizScreen} />
         <Stack.Screen name="Permission" component={PermissionScreen} />
+        <Stack.Screen name="MenuDrawer" component={MenuDrawerScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -19,11 +19,11 @@ export default function ReportScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[styles.content, { maxWidth: contentWidth }]}> 
-        <Text style={styles.title}>이용 리포트</Text>
+      <View style={[styles.content, { maxWidth: contentWidth }]}>
+        <Text style={styles.title}>라이딩 리포트</Text>
         <ReportCard report={report} />
         <View style={styles.row}>
-          <Text style={styles.label}>이용 시간</Text>
+          <Text style={styles.label}>라이딩 시간</Text>
           <Text style={styles.value}>{report.durationMin} 분</Text>
         </View>
         <Button label="리포트 목록" onPress={() => navigation.navigate("ReportList")} />

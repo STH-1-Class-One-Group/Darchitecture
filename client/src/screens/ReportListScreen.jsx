@@ -21,8 +21,8 @@ export default function ReportListScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}> 
-        <Text style={styles.title}>누적 리포트</Text>
+      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}>
+        <Text style={styles.title}>내 리포트</Text>
         {reports.length === 0 ? (
           <Text style={styles.empty}>아직 리포트가 없습니다.</Text>
         ) : (

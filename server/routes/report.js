@@ -4,7 +4,7 @@ const { listReports, getReport } = require("../core/report");
 const router = express.Router();
 
 router.get("/list", (req, res) => {
-  const userId = req.query.userId;
+  const userId = req.user?.uid || req.query.userId;
   if (!userId) return res.json({ reports: [] });
   return res.json({ reports: listReports(userId) });
 });

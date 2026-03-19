@@ -20,7 +20,7 @@ export default function OnboardingScreen({ navigation, onCompleted }) {
     <SafeAreaView style={styles.container}>
       <View style={[styles.content, { maxWidth: contentWidth }]}>
         <Text style={styles.title}>처음 오셨군요!</Text>
-        <Text style={styles.subtitle}>거주 중인 지역구 또는 관광객 여부를 선택해주세요.</Text>
+        <Text style={styles.subtitle}>거주 중인 지역 또는 관심 지역을 선택해주세요.</Text>
 
         <View style={styles.list}>
           {REGIONS.map((region) => (

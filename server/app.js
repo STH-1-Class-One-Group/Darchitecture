@@ -9,6 +9,7 @@ const pointRoutes = require("./routes/point");
 const mapRoutes = require("./routes/map");
 const quizRoutes = require("./routes/quiz");
 const usageRoutes = require("./routes/usage");
+const { verifyFirebaseToken } = require("./core/authMiddleware");
 
 const app = express();
 
@@ -20,12 +21,12 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/auth", authRoutes);
-app.use("/ride", rideRoutes);
-app.use("/report", reportRoutes);
-app.use("/point", pointRoutes);
-app.use("/map", mapRoutes);
-app.use("/quiz", quizRoutes);
-app.use("/usage", usageRoutes);
+app.use("/ride", verifyFirebaseToken, rideRoutes);
+app.use("/report", verifyFirebaseToken, reportRoutes);
+app.use("/point", verifyFirebaseToken, pointRoutes);
+app.use("/map", verifyFirebaseToken, mapRoutes);
+app.use("/quiz", verifyFirebaseToken, quizRoutes);
+app.use("/usage", verifyFirebaseToken, usageRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

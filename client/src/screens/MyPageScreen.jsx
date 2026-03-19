@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import * as Location from "expo-location";
 import Button from "../components/Button";
 import Card from "../components/Card";
 import PointLogItem from "../components/PointLogItem";
 import PermissionRow from "../components/PermissionRow";
-import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
+import apiClient from "../modules/apiClient";
+import { API_ENDPOINTS } from "../constants/apiConstants";
 
 export default function MyPageScreen({ navigation }) {
   const { width } = useWindowDimensions();
@@ -26,8 +26,8 @@ export default function MyPageScreen({ navigation }) {
 
       try {
         const [balanceRes, logRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.pointBalance}`, { params: { userId } }),
-          axios.get(`${API_BASE_URL}${API_ENDPOINTS.pointLog}`, { params: { userId } })
+          apiClient.get(API_ENDPOINTS.pointBalance, { params: { userId } }),
+          apiClient.get(API_ENDPOINTS.pointLog, { params: { userId } })
         ]);
         setBalance(balanceRes.data.balance || 0);
         setLogs(logRes.data.logs || []);
@@ -37,7 +37,7 @@ export default function MyPageScreen({ navigation }) {
       }
 
       const status = await Location.getForegroundPermissionsAsync();
-      setLocationStatus(status.status === "granted" ? "허용" : "비허용");
+      setLocationStatus(status.status === "granted" ? "허용" : "거부");
     };
     load();
   }, []);
@@ -49,7 +49,7 @@ export default function MyPageScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}> 
+      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}>
         <Text style={styles.title}>마이페이지</Text>
 
         <Card>
@@ -69,7 +69,7 @@ export default function MyPageScreen({ navigation }) {
         </Card>
 
         <Card>
-          <Text style={styles.label}>포인트 적립 로그</Text>
+          <Text style={styles.label}>포인트 적립 기록</Text>
           {logs.length === 0 ? (
             <Text style={styles.empty}>아직 적립 내역이 없습니다.</Text>
           ) : (
@@ -78,24 +78,24 @@ export default function MyPageScreen({ navigation }) {
         </Card>
 
         <Card>
-          <Text style={styles.label}>이용 안내</Text>
-          <Text style={styles.guideText}>타슈 앱에서 대여 시작 → 본 앱에서 이용 시작</Text>
-          <Button label="안내 팝업 보기" onPress={() => setShowGuide(true)} />
+          <Text style={styles.label}>라이딩 안내</Text>
+          <Text style={styles.guideText}>지도 화면에서 라이딩을 시작할 수 있습니다.</Text>
+          <Button label="가이드 보기" onPress={() => setShowGuide(true)} />
         </Card>
 
         <Card>
           <Text style={styles.label}>권한 현황</Text>
           <PermissionRow label="위치 권한" status={locationStatus} />
-          <PermissionRow label="알림 권한" status="미연동" />
+          <PermissionRow label="알림 권한" status="미설정" />
         </Card>
       </ScrollView>
 
       <Modal transparent visible={showGuide} animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>이용 시작 순서 안내</Text>
-            <Text style={styles.modalText}>1. 타슈 앱에서 대여 시작</Text>
-            <Text style={styles.modalText}>2. 본 앱에서 이용 시작 버튼 클릭</Text>
+            <Text style={styles.modalTitle}>라이딩 시작 가이드</Text>
+            <Text style={styles.modalText}>1. 지도 화면에서 자전거를 선택하세요.</Text>
+            <Text style={styles.modalText}>2. 라이딩 시작 버튼을 눌러주세요.</Text>
             <Button label="닫기" onPress={() => setShowGuide(false)} />
           </View>
         </View>

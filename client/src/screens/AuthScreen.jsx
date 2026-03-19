@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { Alert, SafeAreaView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import Button from "../components/Button";
-import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
+import { auth } from "../modules/firebase";
 
 export default function AuthScreen({ navigation, onAuthed }) {
   const { width } = useWindowDimensions();
@@ -27,15 +27,29 @@ export default function AuthScreen({ navigation, onAuthed }) {
 
     setLoading(true);
     try {
-      const endpoint = mode === "login" ? API_ENDPOINTS.authLogin : API_ENDPOINTS.authRegister;
-      const response = await axios.post(`${API_BASE_URL}${endpoint}`, { name, email, password });
-      const { token, userId } = response.data;
+      const credential =
+        mode === "login"
+          ? await signInWithEmailAndPassword(auth, email, password)
+          : await createUserWithEmailAndPassword(auth, email, password);
+
+      if (mode === "register" && name) {
+        await updateProfile(credential.user, { displayName: name });
+      }
+
+      const token = await credential.user.getIdToken();
+      const userId = credential.user.uid;
       await AsyncStorage.setItem("auth_token", token);
       await AsyncStorage.setItem("user_id", userId);
       onAuthed({ token, userId, region: null });
       navigation.replace("Onboarding");
     } catch (error) {
-      Alert.alert("로그인 실패", "서버 연결을 확인해주세요.");
+      const code = error?.code || "";
+      let message = "로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.";
+      if (code === "auth/user-not-found") message = "해당 이메일의 계정이 없습니다.";
+      if (code === "auth/wrong-password") message = "비밀번호가 올바르지 않습니다.";
+      if (code === "auth/invalid-email") message = "이메일 형식이 올바르지 않습니다.";
+      if (code === "auth/email-already-in-use") message = "이미 사용 중인 이메일입니다.";
+      Alert.alert("로그인 실패", message);
     } finally {
       setLoading(false);
     }
@@ -45,7 +59,7 @@ export default function AuthScreen({ navigation, onAuthed }) {
     <SafeAreaView style={styles.container}>
       <View style={[styles.content, { maxWidth: contentWidth }]}>
         <Text style={styles.title}>타슈 탄소중립</Text>
-        <Text style={styles.subtitle}>대전시 자전거 이용과 탄소 절감 기록</Text>
+        <Text style={styles.subtitle}>자전거 이용과 탄소 절감 기록</Text>
 
         {mode === "register" && (
           <TextInput
