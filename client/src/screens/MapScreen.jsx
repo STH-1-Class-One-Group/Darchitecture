@@ -71,7 +71,7 @@ export default function MapScreen({ navigation, route }) {
     const distanceKm = calculateDistanceKm(coordinates);
     const carbonReductionKg = calculateCarbonReductionKg(distanceKm);
     const pointsEarned = calculatePoints(distanceKm, carbonReductionKg);
-    const durationMin = Math.max(1, Math.round(elapsedMs / 60000));
+    const durationMin = Math.max(0, Math.floor(elapsedMs / 60000));
 
     return {
       distanceKm,
@@ -109,7 +109,7 @@ export default function MapScreen({ navigation, route }) {
         setSession({ ...current, coordinates: [...current.coordinates] });
         setRiding(true);
       }
-    }, 2000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, []);
@@ -138,7 +138,7 @@ export default function MapScreen({ navigation, route }) {
       distanceKm,
       carbonReductionKg,
       pointsEarned,
-      durationMin: Math.max(1, Math.round((finished.endTime - finished.startTime) / 60000)),
+      durationMin: Math.max(0, Math.floor((finished.endTime - finished.startTime) / 60000)),
       coordinates: finished.coordinates
     };
 
