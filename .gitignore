@@ -2,3 +2,4 @@ node_modules/
 client/.expo/
 server/.env
 client/.env
+server/secrets/

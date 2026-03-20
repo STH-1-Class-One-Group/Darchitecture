@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://kong-changelog-garlic-therapeutic.trycloudflare.com";
+export const API_BASE_URL = "https://cancelled-spa-larger-telephone.trycloudflare.com";
 
 export const API_ENDPOINTS = {
   authRegister: "/auth/register",

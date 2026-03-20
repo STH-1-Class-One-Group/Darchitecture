@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import Button from "../components/Button";
 import QuizItem from "../components/QuizItem";
-import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
+import apiClient from "../modules/apiClient";
+import { API_ENDPOINTS } from "../constants/apiConstants";
 
 export default function QuizScreen({ navigation }) {
   const { width } = useWindowDimensions();
@@ -15,7 +15,7 @@ export default function QuizScreen({ navigation }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.quizQuestions}`);
+        const res = await apiClient.get(API_ENDPOINTS.quizQuestions);
         setQuestions(res.data.questions || []);
       } catch (error) {
         setQuestions([]);
@@ -27,23 +27,23 @@ export default function QuizScreen({ navigation }) {
   const submit = async () => {
     const userId = await AsyncStorage.getItem("user_id");
     try {
-      const res = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.quizSubmit}`, {
+      const res = await apiClient.post(API_ENDPOINTS.quizSubmit, {
         userId,
         answers
       });
-      Alert.alert("퀴즈 제출", `점수: ${res.data.score}점`);
+      Alert.alert("Quiz submitted", `Score: ${res.data.score}`);
       navigation.navigate("Map");
     } catch (error) {
-      Alert.alert("제출 실패", "서버 연결을 확인해주세요.");
+      Alert.alert("Submit failed", "Please check the server connection.");
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}> 
-        <Text style={styles.title}>탄소중립 퀴즈</Text>
+      <ScrollView contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}>
+        <Text style={styles.title}>Tacu Quiz</Text>
         {questions.length === 0 ? (
-          <Text style={styles.empty}>퀴즈를 불러오는 중입니다.</Text>
+          <Text style={styles.empty}>Loading questions...</Text>
         ) : (
           questions.map((q) => (
             <QuizItem
@@ -54,7 +54,7 @@ export default function QuizScreen({ navigation }) {
             />
           ))
         )}
-        <Button label="제출하기" onPress={submit} />
+        <Button label="Submit" onPress={submit} />
       </ScrollView>
     </SafeAreaView>
   );
