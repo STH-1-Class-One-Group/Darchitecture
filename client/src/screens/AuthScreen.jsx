@@ -4,7 +4,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
-import * as AuthSession from "expo-auth-session";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import Button from "../components/Button";
 import { API_BASE_URL, API_ENDPOINTS } from "../constants/apiConstants";
@@ -29,10 +28,6 @@ export default function AuthScreen({ navigation, onAuthed }) {
     androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
   });
-
-  useEffect(() => {
-    console.log(AuthSession.getRedirectUrl("redirect"));
-  }, []);
 
   useEffect(() => {
     const completeGoogleSignIn = async () => {
