@@ -6,16 +6,21 @@ const router = express.Router();
 router.get("/list", (req, res) => {
   const userId = req.user?.uid || req.query.userId;
   if (!userId) return res.json({ reports: [] });
-  return res.json({ reports: listReports(userId) });
+  Promise.resolve(listReports(userId))
+    .then((reports) => res.json({ reports }))
+    .catch(() => res.status(500).json({ error: "report_list_failed" }));
 });
 
 router.get("/:id", (req, res) => {
-  const report = getReport(req.params.id);
-  if (!report) return res.status(404).json({ error: "not_found" });
-  if (req.user?.uid && report.userId !== req.user.uid) {
-    return res.status(403).json({ error: "forbidden" });
-  }
-  return res.json({ report });
+  Promise.resolve(getReport(req.params.id))
+    .then((report) => {
+      if (!report) return res.status(404).json({ error: "not_found" });
+      if (req.user?.uid && report.userId !== req.user.uid) {
+        return res.status(403).json({ error: "forbidden" });
+      }
+      return res.json({ report });
+    })
+    .catch(() => res.status(500).json({ error: "report_fetch_failed" }));
 });
 
 module.exports = router;

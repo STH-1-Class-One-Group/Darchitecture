@@ -1,36 +1,41 @@
-﻿const { db, uid } = require("../db/firebase");
+const { uid } = require("../db/firebase");
+const {
+  COLLECTIONS,
+  ensureUserDocument,
+  getUserDocument,
+  incrementUserAggregates,
+  listCollectionByUser,
+  pointLogRef,
+  serverTimestamp
+} = require("./firestoreStore");
 
-function ensureUser(userId) {
-  if (!db.users.has(userId)) {
-    db.users.set(userId, { id: userId, pointBalance: 0 });
-  }
-}
+async function addPointLog({ userId, amount }) {
+  await ensureUserDocument(userId);
 
-function addPointLog({ userId, amount }) {
-  ensureUser(userId);
   const logId = uid("point");
   const log = {
     id: logId,
+    pointID: logId,
     userId,
     amount,
-    earnedAt: Date.now()
+    earnedAt: serverTimestamp(),
+    createdAt: serverTimestamp()
   };
-  db.pointLogs.set(logId, log);
 
-  const user = db.users.get(userId);
-  user.pointBalance += amount;
-  db.users.set(userId, user);
+  await pointLogRef(logId).set(log);
+  await incrementUserAggregates(userId, { pointDelta: amount });
 
   return log;
 }
 
-function getBalance(userId) {
-  ensureUser(userId);
-  return db.users.get(userId).pointBalance;
+async function getBalance(userId) {
+  await ensureUserDocument(userId);
+  const user = await getUserDocument(userId);
+  return user?.pointBalance || 0;
 }
 
-function getLogs(userId) {
-  return Array.from(db.pointLogs.values()).filter((log) => log.userId === userId);
+async function getLogs(userId) {
+  return listCollectionByUser(COLLECTIONS.pointLogs, userId, "earnedAt");
 }
 
 module.exports = {

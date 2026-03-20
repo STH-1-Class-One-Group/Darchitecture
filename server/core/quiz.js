@@ -1,4 +1,12 @@
-﻿const { db, uid } = require("../db/firebase");
+const { uid } = require("../db/firebase");
+const {
+  COLLECTIONS,
+  ensureUserDocument,
+  incrementUserAggregates,
+  listCollectionByUser,
+  quizResultRef,
+  serverTimestamp
+} = require("./firestoreStore");
 
 const QUESTIONS = [
   {
@@ -25,7 +33,9 @@ function getQuestions() {
   return QUESTIONS.map(({ answer, ...rest }) => rest);
 }
 
-function submitQuiz({ userId, answers }) {
+async function submitQuiz({ userId, answers }) {
+  await ensureUserDocument(userId);
+
   const score = QUESTIONS.reduce((acc, q) => {
     return acc + (answers && answers[q.id] === q.answer ? 1 : 0);
   }, 0);
@@ -33,17 +43,26 @@ function submitQuiz({ userId, answers }) {
   const resultId = uid("quiz");
   const result = {
     id: resultId,
+    quizID: resultId,
     userId,
     score,
-    takenAt: Date.now(),
-    type: "initial"
+    takenAt: serverTimestamp(),
+    type: "initial",
+    createdAt: serverTimestamp()
   };
-  db.quizResults.set(resultId, result);
+
+  await quizResultRef(resultId).set(result);
+  await incrementUserAggregates(userId, { quizId: resultId });
 
   return result;
 }
 
+async function listQuizResults(userId) {
+  return listCollectionByUser(COLLECTIONS.quizResults, userId, "takenAt");
+}
+
 module.exports = {
   getQuestions,
-  submitQuiz
+  submitQuiz,
+  listQuizResults
 };

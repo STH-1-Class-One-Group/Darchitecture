@@ -11,8 +11,9 @@ router.post("/submit", (req, res) => {
   const userId = req.user?.uid || req.body.userId;
   const { answers } = req.body;
   if (!userId) return res.status(400).json({ error: "missing_user" });
-  const result = submitQuiz({ userId, answers });
-  return res.json({ score: result.score });
+  Promise.resolve(submitQuiz({ userId, answers }))
+    .then((result) => res.json({ score: result.score }))
+    .catch(() => res.status(500).json({ error: "quiz_submit_failed" }));
 });
 
 module.exports = router;

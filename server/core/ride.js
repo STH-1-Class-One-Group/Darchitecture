@@ -1,33 +1,42 @@
-﻿const { db, uid } = require("../db/firebase");
+const { uid } = require("../db/firebase");
+const { ensureUserDocument, rideRef, serverTimestamp } = require("./firestoreStore");
 const { calculateCarbonReductionKg, calculateDistanceKm } = require("./utils");
 const { createReportFromRide } = require("./report");
 
-function startRide({ userId }) {
+async function startRide({ userId }) {
+  await ensureUserDocument(userId);
+
   const rideId = uid("ride");
   const ride = {
     id: rideId,
+    rideID: rideId,
     userId,
-    startTime: Date.now(),
+    startTime: serverTimestamp(),
     endTime: null,
     coordinates: [],
     distanceKm: 0,
-    carbonReductionKg: 0
+    carbonReductionKg: 0,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   };
-  db.rides.set(rideId, ride);
+
+  await rideRef(rideId).set(ride);
   return ride;
 }
 
-function endRide({ rideId, coordinates }) {
-  const ride = db.rides.get(rideId);
-  if (!ride) return null;
+async function endRide({ rideId, coordinates }) {
+  const snap = await rideRef(rideId).get();
+  if (!snap.exists) return null;
 
-  ride.endTime = Date.now();
-  ride.coordinates = coordinates || [];
+  const ride = { id: snap.id, ...snap.data() };
+  ride.endTime = serverTimestamp();
+  ride.coordinates = Array.isArray(coordinates) ? coordinates : [];
   ride.distanceKm = calculateDistanceKm(ride.coordinates);
   ride.carbonReductionKg = calculateCarbonReductionKg(ride.distanceKm);
+  ride.updatedAt = serverTimestamp();
 
-  db.rides.set(rideId, ride);
-  const report = createReportFromRide(ride);
+  await rideRef(rideId).set(ride, { merge: true });
+  const report = await createReportFromRide(ride);
   return { ride, report };
 }
 

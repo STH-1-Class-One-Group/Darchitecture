@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Button from "../components/Button";
+import apiClient from "../modules/apiClient";
+import { API_ENDPOINTS } from "../constants/apiConstants";
 import { REGIONS } from "../constants/regionConstants";
 
 export default function OnboardingScreen({ navigation, onCompleted }) {
@@ -11,9 +13,15 @@ export default function OnboardingScreen({ navigation, onCompleted }) {
 
   const submit = async () => {
     if (!selected) return;
-    await AsyncStorage.setItem("user_region", selected);
-    onCompleted(selected);
-    navigation.replace("Map", { showGuide: true });
+    try {
+      const response = await apiClient.patch(API_ENDPOINTS.authMe, { region: selected });
+      const syncedRegion = response.data?.user?.region || selected;
+      await AsyncStorage.setItem("user_region", syncedRegion);
+      onCompleted(syncedRegion);
+      navigation.replace("Map", { showGuide: true });
+    } catch (error) {
+      Alert.alert("지역 저장 실패", "Firestore에 지역 정보를 저장하지 못했습니다. 네트워크와 로그인 상태를 확인해 주세요.");
+    }
   };
 
   return (

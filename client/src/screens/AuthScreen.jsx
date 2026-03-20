@@ -3,6 +3,8 @@ import { Alert, SafeAreaView, StyleSheet, Text, TextInput, useWindowDimensions, 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import Button from "../components/Button";
+import apiClient from "../modules/apiClient";
+import { API_ENDPOINTS } from "../constants/apiConstants";
 import { auth } from "../lib/firebase";
 
 export default function AuthScreen({ navigation, onAuthed }) {
@@ -39,24 +41,36 @@ export default function AuthScreen({ navigation, onAuthed }) {
 
       const token = await credential.user.getIdToken();
       const userId = credential.user.uid;
+      const finalName = credential.user.displayName || name || email.split("@")[0] || "user";
+
+      let syncedUser = {};
+      try {
+        const syncResponse = await apiClient.patch(API_ENDPOINTS.authMe, {
+          name: finalName,
+          email: credential.user.email ?? email
+        });
+        syncedUser = syncResponse.data?.user || {};
+      } catch (syncError) {
+        throw new Error("user_sync_failed");
+      }
 
       await AsyncStorage.setItem("auth_token", token);
       await AsyncStorage.setItem("user_id", userId);
-      await AsyncStorage.setItem("user_email", credential.user.email ?? email);
-      if (credential.user.displayName) {
-        await AsyncStorage.setItem("user_name", credential.user.displayName);
-      }
+      await AsyncStorage.setItem("user_email", syncedUser.email || credential.user.email || email);
+      await AsyncStorage.setItem("user_name", syncedUser.name || finalName);
+      await AsyncStorage.setItem("user_region", syncedUser.region || "");
 
-      onAuthed({ token, userId, region: null });
-      navigation.replace("Onboarding");
+      onAuthed({ token, userId, region: syncedUser.region || null });
+      navigation.replace(syncedUser.region ? "Map" : "Onboarding");
     } catch (error) {
-      const code = error?.code || "";
+      const code = error?.code || error?.message || "";
       let message = "로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.";
 
       if (code === "auth/user-not-found") message = "해당 이메일의 계정이 없습니다.";
       if (code === "auth/wrong-password") message = "비밀번호가 올바르지 않습니다.";
       if (code === "auth/invalid-email") message = "이메일 형식이 올바르지 않습니다.";
       if (code === "auth/email-already-in-use") message = "이미 사용 중인 이메일입니다.";
+      if (code === "user_sync_failed") message = "Firestore 계정 동기화에 실패했습니다. 다시 시도해주세요.";
 
       Alert.alert("로그인 실패", message);
     } finally {
