@@ -2,7 +2,6 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiClient from "./src/modules/apiClient";
 import { API_ENDPOINTS } from "./src/constants/apiConstants";
 import { auth } from "./src/lib/firebase";
@@ -36,28 +35,11 @@ export default function App() {
             apiClient.get(API_ENDPOINTS.authMe).catch(() => null)
           ]);
           const user = profile?.data?.user || {};
-          const cachedRegion = await AsyncStorage.getItem("user_region");
-          if (user.region) {
-            await AsyncStorage.setItem("user_region", user.region);
-          }
-          if (user.name) {
-            await AsyncStorage.setItem("user_name", user.name);
-          }
-          if (user.email) {
-            await AsyncStorage.setItem("user_email", user.email);
-          }
-          await AsyncStorage.setItem("user_id", currentUser.uid);
-          await AsyncStorage.setItem("auth_token", token);
-          setAuthState({ token, userId: currentUser.uid, region: user.region || cachedRegion || null });
+          setAuthState({ token, userId: currentUser.uid, region: user.region || null });
           return;
         }
 
-        const [token, userId, region] = await Promise.all([
-          AsyncStorage.getItem("auth_token"),
-          AsyncStorage.getItem("user_id"),
-          AsyncStorage.getItem("user_region")
-        ]);
-        setAuthState({ token, userId, region });
+        setAuthState({ token: null, userId: null, region: null });
       } finally {
         setBooting(false);
       }

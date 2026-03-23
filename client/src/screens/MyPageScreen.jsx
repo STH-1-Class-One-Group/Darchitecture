@@ -11,10 +11,10 @@ import {
   useWindowDimensions
 } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
+import { auth } from "../lib/firebase";
 
 function formatTimestamp(value) {
   if (!value) return "";
@@ -43,17 +43,11 @@ export default function MyPageScreen({ navigation }) {
   const [locationStatus, setLocationStatus] = useState("미연동");
 
   const loadPage = useCallback(async () => {
-    const [storedName, storedId, storedEmail, storedRegion, profileRes] = await Promise.all([
-      AsyncStorage.getItem("user_name"),
-      AsyncStorage.getItem("user_id"),
-      AsyncStorage.getItem("user_email"),
-      AsyncStorage.getItem("user_region"),
-      apiClient.get(API_ENDPOINTS.authMe).catch(() => null)
-    ]);
-
+    const profileRes = await apiClient.get(API_ENDPOINTS.authMe).catch(() => null);
     const profile = profileRes?.data?.user || {};
-    setUserName(profile.name || storedName || profile.email || storedEmail || storedId || "user");
-    setRegion(profile.region || storedRegion || "");
+    const currentUser = auth.currentUser;
+    setUserName(profile.name || currentUser?.displayName || currentUser?.email || "user");
+    setRegion(profile.region || "");
 
     try {
       const [balanceRes, logRes] = await Promise.all([

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Button from "../components/Button";
 import QuizItem from "../components/QuizItem";
 import apiClient from "../modules/apiClient";
@@ -25,12 +24,8 @@ export default function QuizScreen({ navigation }) {
   }, []);
 
   const submit = async () => {
-    const userId = await AsyncStorage.getItem("user_id");
     try {
-      const res = await apiClient.post(API_ENDPOINTS.quizSubmit, {
-        userId,
-        answers
-      });
+      const res = await apiClient.post(API_ENDPOINTS.quizSubmit, { answers });
       Alert.alert("Quiz submitted", `Score: ${res.data.score}`);
       navigation.navigate("Map");
     } catch (error) {

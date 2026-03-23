@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { Alert, SafeAreaView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import Button from "../components/Button";
 import apiClient from "../modules/apiClient";
@@ -53,12 +52,6 @@ export default function AuthScreen({ navigation, onAuthed }) {
       } catch (syncError) {
         throw new Error("user_sync_failed");
       }
-
-      await AsyncStorage.setItem("auth_token", token);
-      await AsyncStorage.setItem("user_id", userId);
-      await AsyncStorage.setItem("user_email", syncedUser.email || credential.user.email || email);
-      await AsyncStorage.setItem("user_name", syncedUser.name || finalName);
-      await AsyncStorage.setItem("user_region", syncedUser.region || "");
 
       onAuthed({ token, userId, region: syncedUser.region || null });
       navigation.replace(syncedUser.region ? "Map" : "Onboarding");

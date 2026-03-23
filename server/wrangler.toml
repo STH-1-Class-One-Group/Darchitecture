@@ -1,0 +1,6 @@
+name = "ta-cu-api"
+main = "src/index.js"
+compatibility_date = "2026-03-23"
+
+[vars]
+FIREBASE_PROJECT_ID = "ta-cu-d1121"

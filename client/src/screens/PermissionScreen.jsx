@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import * as Location from "expo-location";
 import Button from "../components/Button";
@@ -9,9 +9,14 @@ export default function PermissionScreen({ navigation }) {
 
   useEffect(() => {
     const load = async () => {
-      const status = await Location.getForegroundPermissionsAsync();
-      setLocationStatus(status.status === "granted" ? "허용" : "비허용");
+      try {
+        const status = await Location.getForegroundPermissionsAsync();
+        setLocationStatus(status.status === "granted" ? "허용" : "비허용");
+      } catch (error) {
+        setLocationStatus("확인 불가");
+      }
     };
+
     load();
   }, []);
 

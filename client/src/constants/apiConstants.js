@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://teeth-dem-shirts-sympathy.trycloudflare.com";
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || "https://teeth-dem-shirts-sympathy.trycloudflare.com";
 
 export const API_ENDPOINTS = {
   authRegister: "/auth/register",

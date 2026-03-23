@@ -9,13 +9,10 @@ import {
   View
 } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
-import MapView from "react-native-maps";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { signOut } from "firebase/auth";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
-import MapMarker from "../components/MapMarker";
-import RoutePolyline from "../components/RoutePolyline";
+import MapCanvas from "../components/MapCanvas";
 import { calculateCarbonReductionKg, calculateDistanceKm } from "../modules/carbonModule";
 import { calculatePoints } from "../modules/pointModule";
 import { endRideSession, getCurrentSession, startRideSession } from "../modules/rideModule";
@@ -90,15 +87,11 @@ export default function MapScreen({ navigation, route }) {
 
   useEffect(() => {
     const loadDrawerProfile = async () => {
-      const [storedName, storedId, storedRegion, profileRes] = await Promise.all([
-        AsyncStorage.getItem("user_name"),
-        AsyncStorage.getItem("user_id"),
-        AsyncStorage.getItem("user_region"),
-        apiClient.get(API_ENDPOINTS.authMe).catch(() => null)
-      ]);
+      const profileRes = await apiClient.get(API_ENDPOINTS.authMe).catch(() => null);
       const profile = profileRes?.data?.user || {};
-      setDrawerUserName(profile.name || storedName || storedId || "user");
-      setDrawerRegion(profile.region || storedRegion || "yuseong");
+      const currentUser = auth.currentUser;
+      setDrawerUserName(profile.name || currentUser?.displayName || currentUser?.email || "user");
+      setDrawerRegion(profile.region || "yuseong");
     };
 
     loadDrawerProfile();
@@ -190,7 +183,6 @@ export default function MapScreen({ navigation, route }) {
 
   const logout = async () => {
     await signOut(auth);
-    await AsyncStorage.multiRemove(["auth_token", "user_id", "user_email", "user_name", "user_region"]);
     setShowMenu(false);
     navigation.reset({ index: 0, routes: [{ name: "Auth" }] });
   };
@@ -217,15 +209,12 @@ export default function MapScreen({ navigation, route }) {
         </View>
 
         <View style={styles.mapWrap}>
-          <MapView
-            style={StyleSheet.absoluteFill}
+          <MapCanvas
+            stations={stations}
+            loadingStations={loadingStations}
+            coordinates={coordinates}
             initialRegion={DEFAULT_REGION}
-            showsUserLocation
-            showsMyLocationButton={false}
-          >
-            {!loadingStations && stations.map((station) => <MapMarker key={station.id} station={station} />)}
-            <RoutePolyline coordinates={coordinates} />
-          </MapView>
+          />
 
           <View pointerEvents="none" style={styles.centerBadgeWrap}>
             <View style={styles.centerBadge}>
