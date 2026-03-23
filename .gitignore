@@ -3,3 +3,4 @@ client/.expo/
 server/.env
 client/.env
 server/secrets/
+client/dist/
