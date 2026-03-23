@@ -1,42 +1,78 @@
-﻿import * as Location from "expo-location";
-
 let rideSession = null;
 
-export async function startRideSession() {
-  const permission = await Location.requestForegroundPermissionsAsync();
-  if (permission.status !== "granted") {
-    throw new Error("location_permission_denied");
+function getGeolocation() {
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    throw new Error("location_unavailable");
   }
 
-  rideSession = {
-    startTime: Date.now(),
-    coordinates: [],
-    watcher: null
+  return navigator.geolocation;
+}
+
+function readInitialPosition(options) {
+  return new Promise((resolve, reject) => {
+    const geolocation = getGeolocation();
+    geolocation.getCurrentPosition(resolve, reject, options);
+  });
+}
+
+function watchPosition(options, onPosition, onError) {
+  const geolocation = getGeolocation();
+  return geolocation.watchPosition(onPosition, onError, options);
+}
+
+function createPositionPoint(position) {
+  return {
+    lat: position.coords.latitude,
+    lng: position.coords.longitude,
+    timestamp: position.timestamp
+  };
+}
+
+export async function startRideSession() {
+  const options = {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 10000
   };
 
-  rideSession.watcher = await Location.watchPositionAsync(
-    {
-      accuracy: Location.Accuracy.Balanced,
-      timeInterval: 2000,
-      distanceInterval: 5
-    },
-    (loc) => {
-      rideSession.coordinates.push({
-        lat: loc.coords.latitude,
-        lng: loc.coords.longitude,
-        timestamp: loc.timestamp
-      });
-    }
-  );
+  try {
+    const initialPosition = await readInitialPosition(options);
 
-  return rideSession;
+    rideSession = {
+      startTime: Date.now(),
+      coordinates: [createPositionPoint(initialPosition)],
+      watcher: null
+    };
+
+    rideSession.watcher = watchPosition(
+      options,
+      (position) => {
+        if (!rideSession) return;
+        rideSession.coordinates.push(createPositionPoint(position));
+      },
+      (error) => {
+        if (error?.code === error?.PERMISSION_DENIED || error?.code === 1) {
+          endRideSession().catch(() => null);
+        }
+      }
+    );
+
+    return rideSession;
+  } catch (error) {
+    if (error?.code === error?.PERMISSION_DENIED || error?.code === 1) {
+      throw new Error("location_permission_denied");
+    }
+    throw new Error("location_unavailable");
+  }
 }
 
 export async function endRideSession() {
   if (!rideSession) return null;
-  if (rideSession.watcher) {
-    rideSession.watcher.remove();
+
+  if (rideSession.watcher !== null) {
+    getGeolocation().clearWatch(rideSession.watcher);
   }
+
   const finished = { ...rideSession, endTime: Date.now() };
   rideSession = null;
   return finished;

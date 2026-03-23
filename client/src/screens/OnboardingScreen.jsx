@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Button from "../components/Button";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
@@ -16,7 +15,6 @@ export default function OnboardingScreen({ navigation, onCompleted }) {
     try {
       const response = await apiClient.patch(API_ENDPOINTS.authMe, { region: selected });
       const syncedRegion = response.data?.user?.region || selected;
-      await AsyncStorage.setItem("user_region", syncedRegion);
       onCompleted(syncedRegion);
       navigation.replace("Map", { showGuide: true });
     } catch (error) {

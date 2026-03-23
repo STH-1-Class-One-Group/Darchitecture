@@ -2,7 +2,7 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { onAuthStateChanged } from "firebase/auth";
 import apiClient from "./src/modules/apiClient";
 import { API_ENDPOINTS } from "./src/constants/apiConstants";
 import { auth } from "./src/lib/firebase";
@@ -23,46 +23,30 @@ export default function App() {
   const [authState, setAuthState] = useState({ token: null, userId: null, region: null });
 
   useEffect(() => {
-    const boot = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       try {
-        if (typeof auth.authStateReady === "function") {
-          await auth.authStateReady();
-        }
-
-        const currentUser = auth.currentUser;
-        if (currentUser) {
-          const [token, profile] = await Promise.all([
-            currentUser.getIdToken(),
-            apiClient.get(API_ENDPOINTS.authMe).catch(() => null)
-          ]);
-          const user = profile?.data?.user || {};
-          const cachedRegion = await AsyncStorage.getItem("user_region");
-          if (user.region) {
-            await AsyncStorage.setItem("user_region", user.region);
-          }
-          if (user.name) {
-            await AsyncStorage.setItem("user_name", user.name);
-          }
-          if (user.email) {
-            await AsyncStorage.setItem("user_email", user.email);
-          }
-          await AsyncStorage.setItem("user_id", currentUser.uid);
-          await AsyncStorage.setItem("auth_token", token);
-          setAuthState({ token, userId: currentUser.uid, region: user.region || cachedRegion || null });
+        if (!currentUser) {
+          setAuthState({ token: null, userId: null, region: null });
           return;
         }
 
-        const [token, userId, region] = await Promise.all([
-          AsyncStorage.getItem("auth_token"),
-          AsyncStorage.getItem("user_id"),
-          AsyncStorage.getItem("user_region")
+        const [token, profile] = await Promise.all([
+          currentUser.getIdToken(),
+          apiClient.get(API_ENDPOINTS.authMe).catch(() => null)
         ]);
-        setAuthState({ token, userId, region });
+
+        const user = profile?.data?.user || {};
+        setAuthState({
+          token,
+          userId: currentUser.uid,
+          region: user.region || null
+        });
       } finally {
         setBooting(false);
       }
-    };
-    boot();
+    });
+
+    return unsubscribe;
   }, []);
 
   const initialRoute = useMemo(() => {

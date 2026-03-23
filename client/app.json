@@ -5,6 +5,9 @@
     "version": "0.0.1",
     "orientation": "portrait",
     "platforms": ["ios", "android", "web"],
+    "web": {
+      "output": "single"
+    },
     "sdkVersion": "54.0.0",
     "updates": { "fallbackToCacheTimeout": 0 },
     "assetBundlePatterns": ["**/*"],

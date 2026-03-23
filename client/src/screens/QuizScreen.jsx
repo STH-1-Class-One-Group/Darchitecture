@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, SafeAreaView, ScrollView, StyleSheet, Text, useWindowDimensions } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Button from "../components/Button";
 import QuizItem from "../components/QuizItem";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
+import { auth } from "../lib/firebase";
 
 export default function QuizScreen({ navigation }) {
   const { width } = useWindowDimensions();
@@ -25,7 +25,12 @@ export default function QuizScreen({ navigation }) {
   }, []);
 
   const submit = async () => {
-    const userId = await AsyncStorage.getItem("user_id");
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      Alert.alert("로그인 필요", "사용자 정보를 불러오지 못했습니다. 다시 로그인해 주세요.");
+      return;
+    }
+
     try {
       const res = await apiClient.post(API_ENDPOINTS.quizSubmit, {
         userId,

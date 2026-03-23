@@ -1,28 +1,55 @@
-﻿import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import * as Location from "expo-location";
+import React, { useEffect, useState } from "react";
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import Button from "../components/Button";
 import PermissionRow from "../components/PermissionRow";
 
+async function readBrowserLocationPermission() {
+  if (typeof navigator === "undefined") return "Unavailable";
+
+  if (navigator.permissions?.query) {
+    try {
+      const permission = await navigator.permissions.query({ name: "geolocation" });
+      if (permission.state === "granted") return "Allowed";
+      if (permission.state === "denied") return "Blocked";
+      return "Ask";
+    } catch (error) {
+      return "Unavailable";
+    }
+  }
+
+  return "Check browser settings";
+}
+
 export default function PermissionScreen({ navigation }) {
-  const [locationStatus, setLocationStatus] = useState("확인 중...");
+  const [locationStatus, setLocationStatus] = useState("Checking...");
 
   useEffect(() => {
     const load = async () => {
-      const status = await Location.getForegroundPermissionsAsync();
-      setLocationStatus(status.status === "granted" ? "허용" : "비허용");
+      setLocationStatus(await readBrowserLocationPermission());
     };
     load();
   }, []);
 
+  const openBrowserGuidance = () => {
+    Alert.alert(
+      "Browser permissions",
+      "Use the browser address bar or site settings to change location permissions."
+    );
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>권한 현황</Text>
-      <PermissionRow label="위치 권한" status={locationStatus} />
-      <PermissionRow label="알림 권한" status="미연동" />
-      <Text style={styles.caption}>알림 권한은 추후 푸시 기능과 함께 연동됩니다.</Text>
-      <Button label="지도 화면으로" onPress={() => navigation.navigate("Map")} />
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.title}>Permissions</Text>
+        <PermissionRow label="Location" status={locationStatus} />
+        <PermissionRow label="Notifications" status="Not configured" />
+        <Text style={styles.caption}>Notification permission will be connected later with push features.</Text>
+        <Button label="Back to map" onPress={() => navigation.navigate("Map")} />
+        <Pressable onPress={openBrowserGuidance} style={styles.link}>
+          <Text style={styles.linkText}>View browser permission help</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -30,7 +57,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: "#F5FBF8"
+    backgroundColor: "#F5FBF8",
+    justifyContent: "center"
+  },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB"
   },
   title: {
     fontSize: 22,
@@ -41,5 +76,14 @@ const styles = StyleSheet.create({
     color: "#60726B",
     marginTop: 12,
     marginBottom: 16
+  },
+  link: {
+    marginTop: 12,
+    alignItems: "center"
+  },
+  linkText: {
+    color: "#0D6E4F",
+    fontWeight: "700",
+    textDecorationLine: "underline"
   }
 });

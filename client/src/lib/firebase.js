@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { browserLocalPersistence, getAuth, initializeAuth, inMemoryPersistence } from "firebase/auth";
+import { Platform } from "react-native";
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -24,5 +25,13 @@ if (missingConfigKeys.length > 0) {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+const persistence = Platform.OS === "web" ? browserLocalPersistence : inMemoryPersistence;
+
+export const auth = (() => {
+  try {
+    return initializeAuth(app, { persistence });
+  } catch (error) {
+    return getAuth(app);
+  }
+})();
 export default app;
