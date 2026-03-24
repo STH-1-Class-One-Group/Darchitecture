@@ -1,5 +1,6 @@
-﻿const express = require("express");
+const express = require("express");
 const { getQuestions, submitQuiz } = require("../core/quiz");
+const { sendError } = require("../core/http");
 
 const router = express.Router();
 
@@ -8,12 +9,13 @@ router.get("/questions", (req, res) => {
 });
 
 router.post("/submit", (req, res) => {
-  const userId = req.user?.uid || req.body.userId;
+  const userId = req.user?.uid;
   const { answers } = req.body;
-  if (!userId) return res.status(400).json({ error: "missing_user" });
+  if (!userId) return sendError(res, 401);
+
   Promise.resolve(submitQuiz({ userId, answers }))
     .then((result) => res.json({ score: result.score }))
-    .catch(() => res.status(500).json({ error: "quiz_submit_failed" }));
+    .catch(() => sendError(res, 500));
 });
 
 module.exports = router;

@@ -10,6 +10,7 @@ const mapRoutes = require("./routes/map");
 const quizRoutes = require("./routes/quiz");
 const usageRoutes = require("./routes/usage");
 const { verifyFirebaseToken } = require("./core/authMiddleware");
+const { sendError } = require("./core/http");
 
 const app = express();
 
@@ -27,6 +28,13 @@ app.use("/point", verifyFirebaseToken, pointRoutes);
 app.use("/map", verifyFirebaseToken, mapRoutes);
 app.use("/quiz", verifyFirebaseToken, quizRoutes);
 app.use("/usage", verifyFirebaseToken, usageRoutes);
+
+app.use((req, res) => sendError(res, 404));
+
+app.use((error, req, res, next) => {
+  console.error(error);
+  return sendError(res, 500);
+});
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

@@ -1,11 +1,12 @@
 const { admin } = require("./firebaseAdmin");
+const { sendError } = require("./http");
 
 async function verifyFirebaseToken(req, res, next) {
   const authHeader = req.headers.authorization || "";
   const match = authHeader.match(/^Bearer (.+)$/);
 
   if (!match) {
-    return res.status(401).json({ error: "missing_token" });
+    return sendError(res, 401);
   }
 
   try {
@@ -13,7 +14,7 @@ async function verifyFirebaseToken(req, res, next) {
     req.user = decoded;
     return next();
   } catch (error) {
-    return res.status(401).json({ error: "invalid_token" });
+    return sendError(res, 401);
   }
 }
 

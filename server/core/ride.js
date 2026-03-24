@@ -11,6 +11,7 @@ async function startRide({ userId }) {
     id: rideId,
     rideID: rideId,
     userId,
+    status: "active",
     startTime: serverTimestamp(),
     endTime: null,
     coordinates: [],
@@ -24,20 +25,38 @@ async function startRide({ userId }) {
   return ride;
 }
 
-async function endRide({ rideId, coordinates }) {
+async function endRide({ rideId, userId = null, coordinates }) {
   const snap = await rideRef(rideId).get();
   if (!snap.exists) return null;
 
   const ride = { id: snap.id, ...snap.data() };
-  ride.endTime = serverTimestamp();
-  ride.coordinates = Array.isArray(coordinates) ? coordinates : [];
-  ride.distanceKm = calculateDistanceKm(ride.coordinates);
-  ride.carbonReductionKg = calculateCarbonReductionKg(ride.distanceKm);
-  ride.updatedAt = serverTimestamp();
+  if (userId && ride.userId !== userId) {
+    return { error: "forbidden" };
+  }
 
-  await rideRef(rideId).set(ride, { merge: true });
-  const report = await createReportFromRide(ride);
-  return { ride, report };
+  const normalizedCoordinates = Array.isArray(coordinates) ? coordinates : [];
+  const distanceKm = calculateDistanceKm(normalizedCoordinates);
+  const carbonReductionKg = calculateCarbonReductionKg(distanceKm);
+  const now = serverTimestamp();
+  const completedRide = {
+    ...ride,
+    endTime: now,
+    coordinates: normalizedCoordinates,
+    distanceKm,
+    carbonReductionKg,
+    status: "completed",
+    updatedAt: now
+  };
+
+  if (ride.reportId) {
+    const report = await createReportFromRide(completedRide);
+    if (report?.error) return report;
+    return { ride: completedRide, report };
+  }
+
+  const report = await createReportFromRide(completedRide);
+  if (report?.error) return report;
+  return { ride: completedRide, report };
 }
 
 module.exports = {

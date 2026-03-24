@@ -39,7 +39,6 @@ export default function AuthScreen({ navigation, onAuthed }) {
       }
 
       const token = await credential.user.getIdToken();
-      const userId = credential.user.uid;
       const finalName = credential.user.displayName || name || email.split("@")[0] || "user";
 
       let syncedUser = {};
@@ -53,7 +52,7 @@ export default function AuthScreen({ navigation, onAuthed }) {
         throw new Error("user_sync_failed");
       }
 
-      onAuthed({ token, userId, region: syncedUser.region || null });
+      onAuthed({ token, region: syncedUser.region || null });
       navigation.replace(syncedUser.region ? "Map" : "Onboarding");
     } catch (error) {
       const code = error?.code || error?.message || "";

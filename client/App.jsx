@@ -20,13 +20,13 @@ const Stack = createStackNavigator();
 
 export default function App() {
   const [booting, setBooting] = useState(true);
-  const [authState, setAuthState] = useState({ token: null, userId: null, region: null });
+  const [authState, setAuthState] = useState({ token: null, region: null });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      try {
+        try {
         if (!currentUser) {
-          setAuthState({ token: null, userId: null, region: null });
+          setAuthState({ token: null, region: null });
           return;
         }
 
@@ -38,7 +38,6 @@ export default function App() {
         const user = profile?.data?.user || {};
         setAuthState({
           token,
-          userId: currentUser.uid,
           region: user.region || null
         });
       } finally {

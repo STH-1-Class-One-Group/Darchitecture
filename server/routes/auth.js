@@ -1,5 +1,6 @@
 const express = require("express");
 const { verifyFirebaseToken } = require("../core/authMiddleware");
+const { sendError } = require("../core/http");
 const { ensureUserDocument, getUserDocument, updateUserDocument } = require("../core/firestoreStore");
 
 const router = express.Router();
@@ -23,16 +24,16 @@ function normalizeUser(user) {
 }
 
 router.post("/register", async (req, res) => {
-  return res.status(410).json({ error: "use_firebase_auth" });
+  return sendError(res, 410, "GONE", "Use Firebase Auth instead.");
 });
 
 router.post("/login", async (req, res) => {
-  return res.status(410).json({ error: "use_firebase_auth" });
+  return sendError(res, 410, "GONE", "Use Firebase Auth instead.");
 });
 
 router.get("/me", verifyFirebaseToken, async (req, res) => {
   const userId = req.user?.uid;
-  if (!userId) return res.status(401).json({ error: "missing_user" });
+  if (!userId) return sendError(res, 401);
 
   await ensureUserDocument(userId, {
     name: req.user?.name || req.user?.displayName || "",
@@ -45,7 +46,7 @@ router.get("/me", verifyFirebaseToken, async (req, res) => {
 
 router.patch("/me", verifyFirebaseToken, async (req, res) => {
   const userId = req.user?.uid;
-  if (!userId) return res.status(401).json({ error: "missing_user" });
+  if (!userId) return sendError(res, 401);
 
   const patch = {};
   if (req.body?.name !== undefined) patch.name = req.body.name;

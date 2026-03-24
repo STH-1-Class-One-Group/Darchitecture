@@ -1,26 +1,31 @@
-﻿const express = require("express");
+const express = require("express");
 const { listReports, getReport } = require("../core/report");
+const { sendError } = require("../core/http");
 
 const router = express.Router();
 
 router.get("/list", (req, res) => {
-  const userId = req.user?.uid || req.query.userId;
-  if (!userId) return res.json({ reports: [] });
+  const userId = req.user?.uid;
+  if (!userId) return sendError(res, 401);
+
   Promise.resolve(listReports(userId))
     .then((reports) => res.json({ reports }))
-    .catch(() => res.status(500).json({ error: "report_list_failed" }));
+    .catch(() => sendError(res, 500));
 });
 
 router.get("/:id", (req, res) => {
+  const userId = req.user?.uid;
+  if (!userId) return sendError(res, 401);
+
   Promise.resolve(getReport(req.params.id))
     .then((report) => {
-      if (!report) return res.status(404).json({ error: "not_found" });
-      if (req.user?.uid && report.userId !== req.user.uid) {
-        return res.status(403).json({ error: "forbidden" });
+      if (!report) return sendError(res, 404);
+      if (report.userId !== userId) {
+        return sendError(res, 403);
       }
       return res.json({ report });
     })
-    .catch(() => res.status(500).json({ error: "report_fetch_failed" }));
+    .catch(() => sendError(res, 500));
 });
 
 module.exports = router;

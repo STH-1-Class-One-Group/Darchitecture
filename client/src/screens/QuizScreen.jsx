@@ -25,15 +25,14 @@ export default function QuizScreen({ navigation }) {
   }, []);
 
   const submit = async () => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) {
-      Alert.alert("로그인 필요", "사용자 정보를 불러오지 못했습니다. 다시 로그인해 주세요.");
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      Alert.alert("Login required", "Please sign in again.");
       return;
     }
 
     try {
       const res = await apiClient.post(API_ENDPOINTS.quizSubmit, {
-        userId,
         answers
       });
       Alert.alert("Quiz submitted", `Score: ${res.data.score}`);
