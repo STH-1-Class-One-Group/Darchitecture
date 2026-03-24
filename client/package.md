@@ -25,4 +25,4 @@ This project is now web-first.
 - Build command: `npm run build:web`
 - Static export output: `dist`
 - Recommended environment variable: `EXPO_PUBLIC_API_BASE_URL`
-  
+   
