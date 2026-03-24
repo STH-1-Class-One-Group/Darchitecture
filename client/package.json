@@ -11,7 +11,7 @@
     "ios": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --ios --tunnel\"",
     "ios:lan": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; npx expo start --ios --lan\"",
     "web": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; $env:EXPO_OFFLINE='1'; $env:EXPO_NO_DEPENDENCY_VALIDATION='1'; npx expo start --web\"",
-    "build:web": "powershell -NoProfile -Command \"$env:EXPO_USE_NODE_EXTERNALS='0'; $env:EXPO_OFFLINE='1'; $env:EXPO_NO_DEPENDENCY_VALIDATION='1'; npx expo export --platform web\""
+    "build:web": "EXPO_USE_NODE_EXTERNALS=0 EXPO_OFFLINE=1 EXPO_NO_DEPENDENCY_VALIDATION=1 npx expo export --platform web\""
   },
   "dependencies": {
     "@react-navigation/native": "6.1.18",
