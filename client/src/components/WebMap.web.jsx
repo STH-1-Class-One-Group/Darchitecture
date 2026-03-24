@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo } from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
@@ -40,64 +40,84 @@ function createCurrentPositionIcon() {
   });
 }
 
-function BoundsController({ stations, coordinates, defaultCenter }) {
+function MapController({ defaultCenter, currentPoint, onActionsReady }) {
   const map = useMap();
-
-  const points = useMemo(() => {
-    const stationPoints = stations
-      .filter((station) => Number.isFinite(station.lat) && Number.isFinite(station.lng))
-      .map((station) => [station.lat, station.lng]);
-    const ridePoints = coordinates
-      .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
-      .map((point) => [point.lat, point.lng]);
-    return [...stationPoints, ...ridePoints];
-  }, [stations, coordinates]);
+  const initialViewAppliedRef = useRef(false);
+  const currentPointAppliedRef = useRef(false);
 
   useEffect(() => {
-    if (points.length === 0) {
-      map.setView([defaultCenter.latitude, defaultCenter.longitude], 13);
+    if (!onActionsReady) return;
+
+    onActionsReady({
+      zoomIn: () => map.zoomIn(),
+      zoomOut: () => map.zoomOut(),
+      recenter: (target, zoom = 16) => {
+        const nextTarget = Array.isArray(target) && target.length === 2 ? target : [defaultCenter.latitude, defaultCenter.longitude];
+        map.setView(nextTarget, zoom, { animate: true });
+      }
+    });
+  }, [defaultCenter.latitude, defaultCenter.longitude, map, onActionsReady]);
+
+  useEffect(() => {
+    if (currentPoint && !currentPointAppliedRef.current) {
+      map.setView([currentPoint.lat, currentPoint.lng], 16, { animate: false });
+      currentPointAppliedRef.current = true;
       return;
     }
 
-    if (points.length === 1) {
-      map.setView(points[0], 16);
-      return;
+    if (!currentPoint && !initialViewAppliedRef.current) {
+      map.setView([defaultCenter.latitude, defaultCenter.longitude], 13, { animate: false });
+      initialViewAppliedRef.current = true;
     }
-
-    map.fitBounds(points, { padding: [32, 32], maxZoom: 16 });
-  }, [defaultCenter.latitude, defaultCenter.longitude, map, points]);
+  }, [currentPoint, defaultCenter.latitude, defaultCenter.longitude, map]);
 
   return null;
 }
 
-export default function WebMap({ stations = [], coordinates = [], defaultCenter }) {
+export default function WebMap({ stations = [], coordinates = [], defaultCenter, onActionsReady }) {
   const currentPoint = coordinates.length > 0 ? coordinates[coordinates.length - 1] : null;
   const stationIcon = useMemo(() => createStationIcon(), []);
   const currentIcon = useMemo(() => createCurrentPositionIcon(), []);
+  const routePositions = useMemo(
+    () =>
+      coordinates
+        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
+        .map((point) => [point.lat, point.lng]),
+    [coordinates]
+  );
+  const stationMarkers = useMemo(
+    () =>
+      stations.filter((station) => Number.isFinite(station.lat) && Number.isFinite(station.lng)),
+    [stations]
+  );
+  const [mapActions, setMapActions] = useState(null);
 
   return (
     <View style={styles.container}>
-      <MapContainer
-        center={[defaultCenter.latitude, defaultCenter.longitude]}
-        zoom={13}
-        scrollWheelZoom={false}
-        style={styles.map}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+      <View style={styles.mapShell}>
+        <MapContainer
+          center={[defaultCenter.latitude, defaultCenter.longitude]}
+          zoom={13}
+          scrollWheelZoom
+          zoomControl={false}
+          style={styles.map}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
 
-        <BoundsController stations={stations} coordinates={coordinates} defaultCenter={defaultCenter} />
+          <MapController
+            defaultCenter={defaultCenter}
+            currentPoint={currentPoint}
+            onActionsReady={(actions) => {
+              setMapActions(actions);
+              onActionsReady?.(actions);
+            }}
+          />
 
-        {stations
-          .filter((station) => Number.isFinite(station.lat) && Number.isFinite(station.lng))
-          .map((station) => (
-            <Marker
-              key={station.id}
-              position={[station.lat, station.lng]}
-              icon={stationIcon}
-            >
+          {stationMarkers.map((station) => (
+            <Marker key={station.id} position={[station.lat, station.lng]} icon={stationIcon}>
               <Popup>
                 <strong>{station.name}</strong>
                 <br />
@@ -106,27 +126,37 @@ export default function WebMap({ stations = [], coordinates = [], defaultCenter 
             </Marker>
           ))}
 
-        {coordinates.length > 1 ? (
-          <Polyline
-            positions={coordinates
-              .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng))
-              .map((point) => [point.lat, point.lng])}
-            pathOptions={{ color: "#0D6E4F", weight: 4 }}
-          />
-        ) : null}
+          {routePositions.length > 1 ? (
+            <Polyline positions={routePositions} pathOptions={{ color: "#0D6E4F", weight: 4 }} />
+          ) : null}
 
-        {currentPoint ? (
-          <Marker position={[currentPoint.lat, currentPoint.lng]} icon={currentIcon} />
-        ) : null}
+          {currentPoint ? <Marker position={[currentPoint.lat, currentPoint.lng]} icon={currentIcon} /> : null}
 
-        {currentPoint ? (
-          <CircleMarker
-            center={[currentPoint.lat, currentPoint.lng]}
-            radius={10}
-            pathOptions={{ color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.25 }}
-          />
-        ) : null}
-      </MapContainer>
+          {currentPoint ? (
+            <CircleMarker
+              center={[currentPoint.lat, currentPoint.lng]}
+              radius={10}
+              pathOptions={{ color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.25 }}
+            />
+          ) : null}
+        </MapContainer>
+
+        <View pointerEvents="box-none" style={styles.zoomControlStack}>
+          <Pressable
+            onPress={() => mapActions?.zoomIn()}
+            style={({ pressed }) => [styles.zoomButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.zoomButtonText}>+</Text>
+          </Pressable>
+          <View style={styles.zoomDivider} />
+          <Pressable
+            onPress={() => mapActions?.zoomOut()}
+            style={({ pressed }) => [styles.zoomButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.zoomButtonText}>-</Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 }
@@ -136,11 +166,53 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 320
   },
+  mapShell: {
+    flex: 1,
+    minHeight: 320,
+    position: "relative",
+    borderRadius: 24,
+    overflow: "hidden"
+  },
   map: {
     flex: 1,
     width: "100%",
     minHeight: 320,
-    borderRadius: 24,
-    overflow: "hidden"
+    borderRadius: 24
+  },
+  zoomControlStack: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    zIndex: 1000,
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000000",
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8
+  },
+  zoomButton: {
+    width: 42,
+    height: 42,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  zoomButtonText: {
+    fontSize: 24,
+    lineHeight: 24,
+    fontWeight: "800",
+    color: "#111827"
+  },
+  zoomDivider: {
+    height: 1,
+    backgroundColor: "#E5E7EB"
+  },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }]
   }
 });

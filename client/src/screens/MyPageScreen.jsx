@@ -12,6 +12,7 @@ import {
   Platform
 } from "react-native";
 import { FontAwesome6 } from "@expo/vector-icons";
+import ScreenHeader from "../components/ScreenHeader";
 import apiClient from "../modules/apiClient";
 import { API_ENDPOINTS } from "../constants/apiConstants";
 import { auth } from "../lib/firebase";
@@ -28,26 +29,26 @@ function formatTimestamp(value) {
 }
 
 function formatRegion(region) {
-  if (!region) return "Yuseong-gu, Daejeon";
-  if (region.toLowerCase() === "yuseong") return "Yuseong-gu, Daejeon";
+  if (!region) return "유성구, 대전";
+  if (region.toLowerCase() === "yuseong") return "유성구, 대전";
   return region;
 }
 
 async function readBrowserLocationPermission() {
-  if (typeof navigator === "undefined") return "Unavailable";
+  if (typeof navigator === "undefined") return "사용 불가";
 
   if (navigator.permissions?.query) {
     try {
       const permission = await navigator.permissions.query({ name: "geolocation" });
-      if (permission.state === "granted") return "Allowed";
-      if (permission.state === "denied") return "Blocked";
-      return "Ask";
+      if (permission.state === "granted") return "허용됨";
+      if (permission.state === "denied") return "차단됨";
+      return "확인 필요";
     } catch (error) {
-      return "Unavailable";
+      return "사용 불가";
     }
   }
 
-  return "Check browser settings";
+  return "브라우저 설정 확인";
 }
 
 export default function MyPageScreen({ navigation }) {
@@ -57,7 +58,7 @@ export default function MyPageScreen({ navigation }) {
   const [region, setRegion] = useState("");
   const [balance, setBalance] = useState(0);
   const [logs, setLogs] = useState([]);
-  const [locationStatus, setLocationStatus] = useState("Checking...");
+  const [locationStatus, setLocationStatus] = useState("확인 중...");
 
   const loadPage = useCallback(async () => {
     const [profileRes, permissionStatus, currentUser] = await Promise.all([
@@ -94,8 +95,8 @@ export default function MyPageScreen({ navigation }) {
   const openPermissionSettings = async () => {
     if (Platform.OS === "web") {
       Alert.alert(
-        "Browser permissions",
-        "Use the browser address bar or site settings to change location permissions."
+        "브라우저 권한",
+        "브라우저 주소창 또는 사이트 설정에서 위치 권한을 변경할 수 있습니다."
       );
       return;
     }
@@ -103,33 +104,25 @@ export default function MyPageScreen({ navigation }) {
     try {
       await Linking.openSettings();
     } catch (error) {
-      Alert.alert("Settings unavailable", "This device does not expose a direct settings screen.");
+      Alert.alert("설정 열기 실패", "이 기기에서는 직접 설정 화면을 열 수 없습니다.");
     }
   };
 
   const exchangePoints = () => {
-    Alert.alert("Coming soon", "Point exchange is not implemented yet.");
+    Alert.alert("준비 중", "포인트 교환 기능은 아직 준비 중입니다.");
   };
 
   const openHelpCenter = () => {
-    Alert.alert("Coming soon", "Help Center is not connected yet.");
+    Alert.alert("준비 중", "도움말 센터는 아직 연결되지 않았습니다.");
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.screen}>
-        <View style={styles.header}>
-          <Pressable
-            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Map"))}
-            style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-          >
-            <FontAwesome6 name="chevron-left" size={18} color="#374151" />
-          </Pressable>
-
-          <Text style={styles.headerTitle}>My Page</Text>
-
-          <View style={styles.headerSpacer} />
-        </View>
+        <ScreenHeader
+          title="마이페이지"
+          onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Map"))}
+        />
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { maxWidth: contentWidth }]}>
           <View style={styles.profileCard}>
@@ -144,13 +137,13 @@ export default function MyPageScreen({ navigation }) {
                     {userName}
                   </Text>
                   <Pressable
-                    onPress={() => navigation.navigate("Onboarding")}
+                    onPress={() => navigation.navigate("ProfileEdit")}
                     style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
                   >
-                    <Text style={styles.editButtonText}>Edit</Text>
+                  <Text style={styles.editButtonText}>수정</Text>
                   </Pressable>
                 </View>
-                <Text style={styles.memberLabel}>Member</Text>
+                <Text style={styles.memberLabel}>회원</Text>
               </View>
             </View>
           </View>
@@ -162,7 +155,7 @@ export default function MyPageScreen({ navigation }) {
               </View>
 
               <View>
-                <Text style={styles.regionCaption}>Current region</Text>
+                <Text style={styles.regionCaption}>현재 지역</Text>
                 <Text style={styles.regionValue}>{formatRegion(region)}</Text>
               </View>
             </View>
@@ -178,7 +171,7 @@ export default function MyPageScreen({ navigation }) {
           <View style={styles.pointCard}>
             <View style={styles.pointCardTopRow}>
               <View>
-                <Text style={styles.pointSubtitle}>Available points</Text>
+                <Text style={styles.pointSubtitle}>보유 포인트</Text>
                 <View style={styles.pointValueRow}>
                   <Text style={styles.pointValue}>{balance.toLocaleString()}</Text>
                   <Text style={styles.pointUnit}>P</Text>
@@ -194,25 +187,25 @@ export default function MyPageScreen({ navigation }) {
               onPress={exchangePoints}
               style={({ pressed }) => [styles.exchangeButton, pressed && styles.pressed]}
             >
-              <Text style={styles.exchangeButtonText}>Exchange points</Text>
+              <Text style={styles.exchangeButtonText}>포인트 교환</Text>
             </Pressable>
           </View>
 
           <View style={styles.logCard}>
             <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Point history</Text>
+              <Text style={styles.sectionTitle}>포인트 내역</Text>
               <Pressable
                 onPress={() => navigation.navigate("ReportList")}
                 style={({ pressed }) => [styles.sectionLinkButton, pressed && styles.pressed]}
               >
-                <Text style={styles.sectionLinkText}>View all</Text>
+                <Text style={styles.sectionLinkText}>전체 보기</Text>
                 <FontAwesome6 name="chevron-right" size={10} color="#9CA3AF" />
               </Pressable>
             </View>
 
             <View style={styles.logList}>
               {logs.length === 0 ? (
-                <Text style={styles.emptyText}>No point history yet.</Text>
+                <Text style={styles.emptyText}>아직 포인트 내역이 없습니다.</Text>
               ) : (
                 logs.map((item, index) => (
                   <View key={item.id} style={styles.logRow}>
@@ -222,7 +215,7 @@ export default function MyPageScreen({ navigation }) {
                       </View>
                       <View>
                         <Text style={styles.logTitle}>
-                          {index % 2 === 0 ? "Energy saving reward" : "Usage reward"}
+                          {index % 2 === 0 ? "탄소 절감 보상" : "이용 보상"}
                         </Text>
                         <Text style={styles.logDate}>{formatTimestamp(item.earnedAt)}</Text>
                       </View>
@@ -236,17 +229,17 @@ export default function MyPageScreen({ navigation }) {
           </View>
 
           <View style={styles.permissionCard}>
-            <Text style={styles.permissionTitle}>Permissions</Text>
+            <Text style={styles.permissionTitle}>권한</Text>
 
             <View style={styles.permissionList}>
               <View style={styles.permissionRow}>
-                <Text style={styles.permissionLabel}>Location</Text>
+                <Text style={styles.permissionLabel}>위치</Text>
                 <Text style={styles.permissionStatusGranted}>{locationStatus}</Text>
               </View>
 
               <View style={styles.permissionRow}>
-                <Text style={styles.permissionLabel}>Notifications</Text>
-                <Text style={styles.permissionStatusMuted}>Not configured</Text>
+                <Text style={styles.permissionLabel}>알림</Text>
+                <Text style={styles.permissionStatusMuted}>설정 안 됨</Text>
               </View>
             </View>
 
@@ -254,7 +247,7 @@ export default function MyPageScreen({ navigation }) {
               onPress={openPermissionSettings}
               style={({ pressed }) => [styles.permissionButton, pressed && styles.pressed]}
             >
-              <Text style={styles.permissionButtonText}>Manage permissions</Text>
+              <Text style={styles.permissionButtonText}>권한 관리</Text>
             </Pressable>
           </View>
 
@@ -263,11 +256,11 @@ export default function MyPageScreen({ navigation }) {
               onPress={openHelpCenter}
               style={({ pressed }) => [styles.helpLink, pressed && styles.pressed]}
             >
-              <Text style={styles.helpLinkText}>Help Center</Text>
+                <Text style={styles.helpLinkText}>도움말</Text>
             </Pressable>
 
             <View style={styles.footerMetaRow}>
-              <Text style={styles.footerMeta}>Tashu Carbon Neutrality v2.4.0</Text>
+              <Text style={styles.footerMeta}>타슈 탄소중립 v2.4.0</Text>
               <Text style={styles.footerMeta}>© 2024 Tashu</Text>
             </View>
           </View>

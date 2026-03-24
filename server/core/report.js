@@ -62,6 +62,7 @@ async function createReportFromRide(ride) {
       reportID: existingReportId,
       rideId: ride.id,
       userId: ride.userId,
+      coordinates: Array.isArray(ride.coordinates) ? ride.coordinates : [],
       distanceKm: ride.distanceKm,
       durationMin,
       carbonReductionKg: ride.carbonReductionKg,

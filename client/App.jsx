@@ -13,6 +13,7 @@ import MapScreen from "./src/screens/MapScreen";
 import ReportScreen from "./src/screens/ReportScreen";
 import ReportListScreen from "./src/screens/ReportListScreen";
 import MyPageScreen from "./src/screens/MyPageScreen";
+import ProfileEditScreen from "./src/screens/ProfileEditScreen";
 import QuizScreen from "./src/screens/QuizScreen";
 import PermissionScreen from "./src/screens/PermissionScreen";
 
@@ -75,6 +76,7 @@ export default function App() {
         <Stack.Screen name="Report" component={ReportScreen} />
         <Stack.Screen name="ReportList" component={ReportListScreen} />
         <Stack.Screen name="MyPage" component={MyPageScreen} />
+        <Stack.Screen name="ProfileEdit" component={ProfileEditScreen} />
         <Stack.Screen name="Quiz" component={QuizScreen} />
         <Stack.Screen name="Permission" component={PermissionScreen} />
       </Stack.Navigator>

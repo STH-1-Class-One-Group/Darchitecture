@@ -12,7 +12,7 @@ export default function AuthScreen({ navigation, onAuthed }) {
   const [mode, setMode] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("demo@tacu.app");
-  const [password, setPassword] = useState("password");
+  const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 
